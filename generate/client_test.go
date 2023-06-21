@@ -34,7 +34,7 @@ func (suite *GeneratedClientSuite) startServer() (string, func()) {
 	address := suite.addresses.Next()
 	sequence := &testext.Sequence{}
 	server := services.NewServer(
-		services.Listen(apis.NewGateway(apis.WithAddress(address))),
+		services.Listen(apis.NewGateway(address)),
 		services.Register(gen.SampleServiceServer(testext.SampleServiceHandler{Sequence: sequence})),
 	)
 	go server.Run()

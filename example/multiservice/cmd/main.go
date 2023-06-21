@@ -19,7 +19,7 @@ func main() {
 
 	// Both service APIs will run in a single HTTP server running on localhost:8080.
 	server := services.NewServer(
-		services.Listen(apis.NewGateway()),
+		services.Listen(apis.NewGateway(":8080")),
 		services.Register(
 			greetergateway.NewGreeterService(greeterService),
 			dismissgateway.NewDismissService(dismissService),

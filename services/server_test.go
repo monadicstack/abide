@@ -40,7 +40,7 @@ func (suite *ServerSuite) start() (*services.Server, *testext.Sequence, func()) 
 	}
 
 	server := services.NewServer(
-		services.Listen(apis.NewGateway(apis.WithAddress(address))),
+		services.Listen(apis.NewGateway(address)),
 		services.Listen(events.NewGateway()),
 		services.Register(gen.SampleServiceServer(sampleService)),
 		services.Register(gen.OtherServiceServer(otherService)),

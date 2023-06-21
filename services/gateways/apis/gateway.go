@@ -17,13 +17,10 @@ import (
 	"github.com/monadicstack/abide/services"
 )
 
-// DefaultAddress is the "host:port" API gateways will use if you don't specify your own.
-const DefaultAddress = "localhost:8080"
-
 // NewGateway creates a new API Gateway that allows your service to accept incoming requests
 // using RPC over HTTP. This encapsulates a standard net/http server while providing options
 // so that you can customize various aspects of the server, TLS, and middleware as desired.
-func NewGateway(options ...GatewayOption) *Gateway {
+func NewGateway(address string, options ...GatewayOption) *Gateway {
 	router := httptreemux.New()
 	gw := Gateway{
 		router:     router,
@@ -31,7 +28,7 @@ func NewGateway(options ...GatewayOption) *Gateway {
 		middleware: HTTPMiddlewareFuncs{},
 		pathPrefix: "",
 		endpoints:  map[httpRoute]services.Endpoint{},
-		server:     &http.Server{Addr: DefaultAddress, Handler: router},
+		server:     &http.Server{Addr: address, Handler: router},
 		tlsCert:    "",
 		tlsKey:     "",
 	}
@@ -408,13 +405,6 @@ func pathParams(req *http.Request) map[string][]string {
 
 // GatewayOption defines a setting you can apply when creating an RPC gateway via 'NewGateway'.
 type GatewayOption func(*Gateway)
-
-// WithAddress lets you customize which host/port the underlying HTTP server will run on.
-func WithAddress(address string) GatewayOption {
-	return func(gw *Gateway) {
-		gw.server.Addr = address
-	}
-}
 
 // WithMiddleware inserts the following chain of HTTP handlers so that they fire before
 // the actual HTTP handler we generate for your service endpoint. The middleware functions

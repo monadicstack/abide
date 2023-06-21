@@ -29,7 +29,7 @@ func main() {
 	calcServer := gen.CalculatorServiceServer(calcHandler, middleware...)
 
 	server := services.NewServer(
-		services.Listen(apis.NewGateway()),
+		services.Listen(apis.NewGateway(":8080")),
 		services.Listen(events.NewGateway()),
 		services.Register(calcServer),
 	)
