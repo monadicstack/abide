@@ -5,6 +5,7 @@ package generate_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os/exec"
 	"strings"
 	"time"
@@ -98,6 +99,9 @@ func (suite *GeneratedClientSuite) ExpectFail(result ClientTestResult, status in
 // test case stuff), this will halt the current test case right here and now.
 func (suite *GeneratedClientSuite) RunExternalTest(command string) ClientTestResults {
 	stdout, err := exec.Command("/bin/zsh", "-c", command).Output()
+	if err != nil {
+		fmt.Println(">>>>>>>>>> STDOUT: ", string(stdout))
+	}
 	suite.Require().NoError(err, "Running '%v' should not fail at all.", command)
 	return ParseClientTestOutput(stdout)
 }
