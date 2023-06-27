@@ -1,6 +1,8 @@
 # Abide
 
-Abide is a code generator and runtime library that helps you
+*That's just, like, your opinion, man!*
+
+Abide is an opinionated code generator and runtime library that helps you
 write (micro) services/APIs that supports, both, RPC/HTTP
 and Event-Driven invocation. It parses the
 interfaces/structs/comments in your code service
@@ -148,13 +150,15 @@ func main() {
     // Create your logic-only handler, then wrap it in service
     // communication bits that let it interact with the Abide runtime.
     calcHandler := calc.CalculatorServiceHandler{}
-    calcService := calcgen.NewCalculatorService(calcHandler)
+    calcService := calcgen.CalculatorServiceServer(calcHandler)
 	
     // Fire up a server that will manage our service and listen to 
     // API calls on port 9000.
-    server := runtime.New(calcService)
-    server.Listen(apis.NewGateway(":9000"))
-    server.Run()
+    server := services.NewServer(
+        services.Listen(apis.NewGateway(":9000")),
+        services.Register(calcService),
+    )
+	server.Run()
 }
 ```
 
@@ -304,13 +308,14 @@ an Event Gateway:
 func main() {
     // Create the handler and service, exact same as before...
     orderHandler := orders.OrderServiceHandler{}
-    orderService := ordersgen.NewOrderService(orderHandler)
+    orderService := ordersgen.OrderServiceServer(orderHandler)
 
     // Now, the service can accept requests via the HTTP API
     // OR from events wired up using the 'ON' doc option.
-    server := runtime.New(orderService)
-    server.Listen(apis.NewGateway(":9000"))
-    server.Listen(events.NewGateway())
+    server := services.NewServer(
+        services.Listen(apis.NewGateway(":9000")),
+        services.Register(orderService),
+    )
     server.Run()
 }
 ```
@@ -350,7 +355,7 @@ import (
 func main() {
     // Create the handler and service, exact same as before...
     orderHandler := orders.OrderServiceHandler{}
-    orderService := ordersgen.NewOrderService(orderHandler)
+    orderService := ordersgen.OrderServiceServer(orderHandler)
 	
     // Configure a NATS client to distribute events.
     natsBroker := nats.Broker(
@@ -359,11 +364,11 @@ func main() {
     )
 	
     // Tell the event gateway to use NATS instead of local queues.
-    server := runtime.New(orderService)
-    server.Listen(apis.NewGateway())
-    server.Listen(events.NewGateway(
-        events.WithBroker(natsBroker),	
-    ))
+    server := services.NewServer(
+        services.Listen(apis.NewGateway(":9000")),
+        services.Listen(events.NewGateway(events.WithBroker(natsBroker))),
+        services.Register(orderService),
+    )
     server.Run()
 }
 ```
@@ -708,15 +713,17 @@ func main() {
     // Every service call to the CalculatorService will write to
     // the log and track how long it took.
     calcHandler := calc.CalculatorServiceHandler{}
-    calcService := calcgen.NewCalculatorService(calcHandler,
+    calcService := calcgen.CalculatorServiceServer(calcHandler,
         LogRequest,
         CollectTiming,
     )
 
     // No changes here...
-    server := runtime.New(calcService)
-    server.Listen(apis.NewGateway())
-    server.Listen(events.NewGateway())
+    server := services.NewServer(
+        services.Listen(apis.NewGateway(":9000")),
+        services.Listen(events.NewGateway()),
+        services.Register(calcService),
+    )
     server.Run()
 }
 
@@ -761,20 +768,22 @@ you have an entire ecosystem of off-the-shelf handlers to plug in.
 func main() {
     // We'll still log and capture metrics on every call.
     calcHandler := calc.CalculatorServiceHandler{}
-    calcService := calcgen.NewCalculatorService(calcHandler,
+    calcService := calcgen.CalculatorServiceServer(calcHandler,
         LogRequest,
         CollectTiming,
     )
 
-    server := runtime.New(calcService)
-    server.Listen(apis.NewGateway(
-        apis.WithMiddleware(
-            negroni.NewLogger().ServeHTTP,
-            cors.New().ServeHTTP,
-            gzip.New().ServeHTTP,
-        ),
-    ))
-    server.Listen(events.NewGateway())
+    server := services.NewServer(
+        services.Listen(apis.NewGateway(":9000",
+            apis.WithMiddleware(
+                negroni.NewLogger().ServeHTTP,
+                cors.New().ServeHTTP,
+                gzip.New().ServeHTTP,
+            ),
+        )),
+        services.Listen(events.NewGateway()),
+        services.Register(calcService),
+    )
     server.Run()
 }
 ```
