@@ -13,6 +13,7 @@ import (
 	"text/template"
 
 	"github.com/monadicstack/abide/internal/naming"
+	"github.com/monadicstack/abide/internal/quiet"
 	"github.com/monadicstack/abide/parser"
 )
 
@@ -44,7 +45,7 @@ func File(ctx *parser.Context, fileTemplate FileTemplate) error {
 	if err != nil {
 		return fmt.Errorf("unable to open file: %s: %w", outputPath, err)
 	}
-	defer outputFile.Close()
+	defer quiet.Close(outputFile)
 
 	// Step 3: Generate a []byte containing all of the source code bytes that we generated from the template.
 	sourceCode, err := fileTemplate.Eval(ctx)
@@ -315,18 +316,23 @@ func (funcs dartFunctions) convertType(t *parser.TypeDeclaration) string {
 
 type openapiFunctions struct{}
 
-// convertPath converts a router-compatible path pattern like "/foo/:bar/baz/:goo" to the equivalent
+// convertPath converts a router-compatible path pattern like to the equivalent
 // path that OpenAPI/Swagger prefers: "/foo/{bar}/baz/{goo}"
 func (funcs openapiFunctions) convertPath(path string) string {
-	segments := strings.Split(path, "/")
-	for i, segment := range segments {
-		if strings.HasPrefix(segment, ":") {
-			segments[i] = "{" + segment[1:] + "}"
+	// The ":VAR" style is our old way of representing things. Now, we use "{VAR}" notation, so it lines up
+	// one to one with OpenAPI, and it's up to the HTTP gateway to convert "{}" to ":".
+	return path
+	/*
+		segments := strings.Split(path, "/")
+		for i, segment := range segments {
+			if strings.HasPrefix(segment, ":") {
+				segments[i] = "{" + segment[1:] + "}"
+			}
 		}
-	}
-	path = strings.Join(segments, "/")
-	if strings.HasPrefix(path, "/") {
-		return path
-	}
-	return "/" + path
+		path = strings.Join(segments, "/")
+		if strings.HasPrefix(path, "/") {
+			return path
+		}
+		return "/" + path
+	*/
 }

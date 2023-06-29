@@ -785,7 +785,7 @@ func ApplyFunctionDocumentation(ctx *Context, function *ServiceFunctionDeclarati
 			apiRoute.Method = http.MethodHead
 			apiRoute.Path = normalizePath(line[5:])
 		case strings.HasPrefix(line, "HTTP OMIT"):
-			// Yes, if you were silly enough to also have "GET /user/:ID" or something
+			// Yes, if you were silly enough to also have "GET /user/{ID}" or something
 			// like that, the "GET " option will still fire, but it will just update the
 			// apiRoute variable harmlessly since it's no longer in the routes list.
 			function.Routes = slices.Remove(function.Routes, &apiRoute)

@@ -123,11 +123,11 @@ func (suite *NamingSuite) TestPathTokens() {
 	r.Equal([]string{"foo"}, naming.PathTokens("/foo/"))
 	r.Equal([]string{"foo"}, naming.PathTokens("foo/"))
 	r.Equal([]string{"foo", "bar"}, naming.PathTokens("foo/bar"))
-	r.Equal([]string{"foo", ":bar"}, naming.PathTokens("foo/:bar"))
-	r.Equal([]string{"foo", ":bar", "baz"}, naming.PathTokens("foo/:bar/baz"))
-	r.Equal([]string{"foo", ":bar", "", "", "baz"}, naming.PathTokens("foo/:bar///baz")) // doesn't normalize inner /
-	r.Equal([]string{"foo", ":bar", "{baz.Blah}"}, naming.PathTokens("foo/:bar/{baz.Blah}"))
-	r.Equal([]string{"foo", ":bar", "{baz.Blah}"}, naming.PathTokens("///foo/:bar/{baz.Blah}///"))
+	r.Equal([]string{"foo", "{bar}"}, naming.PathTokens("foo/{bar}"))
+	r.Equal([]string{"foo", "{bar}", "baz"}, naming.PathTokens("foo/{bar}/baz"))
+	r.Equal([]string{"foo", "{bar}", "", "", "baz"}, naming.PathTokens("foo/{bar}///baz")) // doesn't normalize inner /
+	r.Equal([]string{"foo", "{bar}", "{baz.Blah}"}, naming.PathTokens("foo/{bar}/{baz.Blah}"))
+	r.Equal([]string{"foo", "{bar}", "{baz.Blah}"}, naming.PathTokens("///foo/{bar}/{baz.Blah}///"))
 }
 
 func (suite *NamingSuite) TestLowerCamel() {

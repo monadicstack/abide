@@ -27,7 +27,7 @@ type Endpoint struct {
 	NewInput func() StructPointer
 	// Routes defines the actual ingress routes that allow this service operation to
 	// be invoked by various gateways. For instance, they tell you that you can invoke
-	// the API call "GET /user/:ID" to invoke it or that it should trigger when the
+	// the API call "GET /user/{ID}" to invoke it or that it should trigger when the
 	// event "ON UserService.UserCreated" fires.
 	Routes []EndpointRoute
 }
@@ -40,7 +40,7 @@ func (end Endpoint) QualifiedName() string {
 
 // EndpointRoute defines an actual ingress route that allows a service operation to
 // be invoked by various gateways. For instance, one route will tell you that you can invoke
-// the API call "GET /user/:ID" to invoke the method or that it should run when the
+// the API call "GET /user/{ID}" to invoke the method or that it should run when the
 // event "ON UserService.UserCreated" fires.
 type EndpointRoute struct {
 	// GatewayType indicates the type of gateway that should service this route. For instance
@@ -52,7 +52,7 @@ type EndpointRoute struct {
 	Method string
 	// Path describes the actual unique routing path that the gateway should use to ensure
 	// that requests get to this endpoint. For API endpoints, it's the request path
-	// like "/user/:ID" and for event endpoints, it's the subscription key like "FooService.Save".
+	// like "/user/{ID}" and for event endpoints, it's the subscription key like "FooService.Save".
 	Path string
 	// Status is mainly used by API gateway routes to determine what HTTP status code we should
 	// return to the caller when this endpoint succeeds. By default, this is 200.

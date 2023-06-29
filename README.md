@@ -411,12 +411,12 @@ type CalculatorService interface {
     // Add calculates the sum of A + B.
     //
     // HTTP 202
-    // GET /sum/:A/:B
+    // GET /sum/{A}/{B}
     Add(context.Context, *AddRequest) (*AddResponse, error)
 
     // Sub calculates the difference of A - B.
     //
-    // GET /difference/:A/:B
+    // GET /difference/{A}/{B}
     Sub(context.Context, *SubRequest) (*SubResponse, error)
 	
     // CountCalls is NOT exposed in your HTTP API. It is, however
@@ -453,7 +453,7 @@ curl -d '{"A":5, "B":2}' http://localhost:9000/v1/CalculatorService.Sub
 #### Function: GET/POST/PUT/PATCH/DELETE
 
 You can replace the default `POST ServiceName.FunctionName` route for any
-operation with the route of your choice. In the example, the path parameters `:A` and `:B`
+operation with the route of your choice. In the example, the path parameters `{A}` and `{B}`
 will be bound to the equivalent A and B attributes on the request struct.
 
 Here are the updated curl calls after we generate the new

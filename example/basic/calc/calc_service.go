@@ -9,25 +9,25 @@ type CalculatorService interface {
 	// Add calculates and returns the sum of two numbers.
 	//
 	// HTTP 200
-	// GET  /add/:A/:B
+	// GET  /add/{A}/{B}
 	Add(context.Context, *AddRequest) (*AddResponse, error)
 
 	// Sub calculates and returns the difference between two numbers.
 	//
 	// HTTP 200
-	// GET  /sub/:A/:B
+	// GET  /sub/{A}/{B}
 	Sub(context.Context, *SubRequest) (*SubResponse, error)
 
 	// Mul calculates and returns the product of two numbers.
 	//
 	// HTTP 200
-	// GET  /multiply/:A/:B
+	// GET  /multiply/{A}/{B}
 	Mul(context.Context, *MulRequest) (*MulResponse, error)
 
 	// Double multiplies the value by 2
 	//
 	// HTTP 200
-	// POST /double/:Value
+	// POST /double/{Value}
 	// ON   CalculatorService.Mul
 	Double(context.Context, *DoubleRequest) (*DoubleResponse, error)
 }

@@ -490,16 +490,16 @@ func (opts GatewayFunctionOptions) SupportsBody() bool {
 
 // PathParameters looks at all of the ":xxx" path parameters in HTTPPath and returns the fields on
 // the request struct that will be bound by those values at runtime. For instance, if the path
-// was "/user/:userID/address/:addressID", this will return a 2-element slice containing the request's
+// was "/user/{userID}/address/{addressID}", this will return a 2-element slice containing the request's
 // UserID and AddressID fields.
 func (opts GatewayFunctionOptions) PathParameters() GatewayParameters {
 	var results GatewayParameters
 	for _, segment := range strings.Split(opts.Path, "/") {
-		if !strings.HasPrefix(segment, ":") {
+		if !strings.HasPrefix(segment, "{") && !strings.HasSuffix(segment, "}") {
 			continue
 		}
 
-		paramName := segment[1:]
+		paramName := segment[1 : len(segment)-1]
 		field := opts.Function.Request.Fields.ByBindingName(paramName)
 		if field == nil {
 			continue
@@ -568,7 +568,7 @@ func (params GatewayParameters) NotEmpty() bool {
 
 // GatewayParameter defines how a path/query parameter will be bound to a field in your request struct.
 type GatewayParameter struct {
-	// Name is the identifier of the path param (e.g "id" in "/user/:id") or query string value that
+	// Name is the identifier of the path param (e.g "id" in "/user/{id}") or query string value that
 	// will be bound to the Field.
 	Name string
 	// Field indicates which model attribute will be populated when this parameter goes

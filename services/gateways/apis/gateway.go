@@ -97,7 +97,7 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 		return
 	}
 
-	// The user specified a path like "GET /user/:id" in their code, so when they fetch the
+	// The user specified a path like "GET /user/{id}" in their code, so when they fetch the
 	// endpoint data later, that's what we want it to look like, so we'll leave the endpoint's
 	// Path attribute alone. But... the router needs the full path which includes the optional
 	// prefix (e.g. "/v2"). So we'll use the full path for routing and lookups (transparent to
@@ -165,8 +165,8 @@ func (gw *Gateway) registerOptions(path string) {
 	// gateway's already-registered endpoint paths for a match (and thus skip), but there's a case that's
 	// hard to detect:
 	//
-	//   GET  /foo/:bar
-	//   POST /foo/:goo
+	//   GET  /foo/{bar}
+	//   POST /foo/{goo}
 	//
 	// A dumb string-based check would see those as unique paths, but the router will still barf because they
 	// are functionally equivalent.
@@ -269,7 +269,7 @@ func (gw *Gateway) notFoundHandler(w http.ResponseWriter, req *http.Request) {
 type httpRoute struct {
 	// Method is the HTTP method used by this route (e.g. "GET", "POST", etc.).
 	Method string
-	// Path is the path pattern used by this route (e.g. "/user/:ID")
+	// Path is the path pattern used by this route (e.g. "/user/{ID}")
 	Path string
 }
 

@@ -63,7 +63,7 @@ func (suite *ParserSuite) TestDocOptions() {
 			"Dude abides.",
 		},
 		Routes: parser.GatewayRoutes{
-			&parser.GatewayRoute{GatewayType: "API", Method: "GET", Path: "/dude/:id", Status: 202},
+			&parser.GatewayRoute{GatewayType: "API", Method: "GET", Path: "/dude/{id}", Status: 202},
 		},
 	})
 
@@ -84,7 +84,7 @@ func (suite *ParserSuite) TestDocOptions() {
 	suite.assertFunction(service, "Maude", expectedFunction{
 		Documentation: parser.DocumentationLines{},
 		Routes: parser.GatewayRoutes{
-			&parser.GatewayRoute{GatewayType: "API", Method: "POST", Path: "/dude/:id/child", Status: 201},
+			&parser.GatewayRoute{GatewayType: "API", Method: "POST", Path: "/dude/{id}/child", Status: 201},
 		},
 	})
 
@@ -102,7 +102,7 @@ func (suite *ParserSuite) TestDocOptions() {
 			"Sometimes the bar eats you.",
 		},
 		Routes: parser.GatewayRoutes{
-			&parser.GatewayRoute{GatewayType: "API", Method: "PATCH", Path: "/dude/:id", Status: 200},
+			&parser.GatewayRoute{GatewayType: "API", Method: "PATCH", Path: "/dude/{id}", Status: 200},
 		},
 	})
 
@@ -111,7 +111,7 @@ func (suite *ParserSuite) TestDocOptions() {
 			"RemoveToe attempts to extort $1 million.",
 		},
 		Routes: parser.GatewayRoutes{
-			&parser.GatewayRoute{GatewayType: "API", Method: "DELETE", Path: "/nihilist/:id/toe", Status: 200},
+			&parser.GatewayRoute{GatewayType: "API", Method: "DELETE", Path: "/nihilist/{id}/toe", Status: 200},
 		},
 	})
 

@@ -77,9 +77,10 @@ class {{ $clientName }} {
     // down to "a.b.c=4" for it to fit nicely into our URL-based binding.
     requestJson = _flattenJson(requestJson);
 
+    // Replace variable segments w/ their values (e.g "/user/{User.ID}/file/{ID}" -> "/user/123/file/456").
     var resolvedPath = route
       .split('/')
-      .map((s) => s.startsWith(':') ? stringifyAndRemove(requestJson, s.substring(1)) : s)
+      .map((s) => _isParameterSegment(s) ? stringifyAndRemove(requestJson, s.substring(1, s.length - 1)) : s)
       .join('/');
 
     // These encode the data in the body, so no need to shove it in the query string.
@@ -93,6 +94,10 @@ class {{ $clientName }} {
       .join('&');
 
     return resolvedPath + '?' + queryValues;
+  }
+
+  bool _isParameterSegment(String segment) {
+    return segment.startsWith('{') && segment.endsWith('}');
   }
 
   Future<T> _handleResponseJson<T>(http.StreamedResponse response, T Function(Map<String, dynamic>) factory) async {

@@ -92,7 +92,7 @@ type Client struct {
 // You should NOT call this yourself. Instead, you should stick to the strongly typed, code-generated
 // service functions on your client.
 func (c Client) Invoke(ctx context.Context, method string, path string, serviceRequest any, serviceResponse any) error {
-	// Step 1: Fill in the URL path and query string w/ fields from the request. (e.g. /user/:id -> /user/abc)
+	// Step 1: Fill in the URL path and query string w/ fields from the request. (e.g. /user/{id} -> /user/abc)
 	// If this is a GET/DELETE/etc. that doesn't support bodies, this will include a query string
 	// with the remaining service request values.
 	address := c.buildURL(method, path, serviceRequest)
