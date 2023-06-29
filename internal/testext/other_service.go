@@ -21,6 +21,36 @@ type OtherService interface {
 	// ON OtherService.SpaceOut
 	// ON SampleService.TriggerUpperCase
 	ListenWell(context.Context, *OtherRequest) (*OtherResponse, error)
+
+	// ChainOne allows us to test the cascading of events to create more complex flows. When this
+	// finishes it will trigger ChainTwo which will, in turn, trigger ChainThree and ChainFour.
+	ChainOne(ctx context.Context, request *OtherRequest) (*OtherResponse, error)
+
+	// ChainTwo is used to test that methods invoked via the event gateway can trigger even more events.
+	//
+	// ON OtherService.ChainOne
+	ChainTwo(ctx context.Context, request *OtherRequest) (*OtherResponse, error)
+
+	// ChainThree is used to test that methods invoked via the event gateway can trigger even more events.
+	//
+	// ON OtherService.ChainTwo
+	ChainThree(ctx context.Context, request *OtherRequest) (*OtherResponse, error)
+
+	// ChainFour is used to test that methods invoked via the event gateway can trigger even more events.
+	//
+	// ON OtherService.ChainTwo
+	ChainFour(ctx context.Context, request *OtherRequest) (*OtherResponse, error)
+
+	// ChainFail fires after ChainOne, but should always return an error. This will prevent ChainFailAfter
+	// from ever actually running.
+	//
+	// ON OtherService.ChainOne
+	ChainFail(ctx context.Context, request *OtherRequest) (*OtherResponse, error)
+
+	// ChainFailAfter is dependent on a successful call to ChainFail... which always fails. So this NEVER runs.
+	//
+	// ON OtherService.ChainFail
+	ChainFailAfter(ctx context.Context, request *OtherRequest) (*OtherResponse, error)
 }
 
 // OtherRequest is a basic payload that partially matches the schema of SampleResponse so

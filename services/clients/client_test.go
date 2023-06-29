@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/monadicstack/abide/internal/quiet"
 	"github.com/monadicstack/abide/metadata"
 	"github.com/monadicstack/abide/services/clients"
 	"github.com/stretchr/testify/suite"
@@ -108,11 +109,11 @@ func (suite *ClientSuite) TestInvoke_post() {
 	assert.Equal("Loblaw", out.Name)
 }
 
-// Ensures that an RPC client fills in path params (e.g. "/:id"->"/1234"). We will make sure
+// Ensures that an RPC client fills in path params (e.g. "/{id}"->"/1234"). We will make sure
 // that path param substitutions:
 //
 // * Param name matches request attribute exactly
-// * Param name can be case insensitive (e.g. ":id" should match field "ID")
+// * Param name can be case-insensitive (e.g. ":id" should match field "ID")
 // * Support nested params (e.g. ":Criteria.Paging.Limit")
 // * Should ignore param names that don't match anything
 // * If you include a request attribute in the path, do NOT include it in the query string, too.
@@ -139,7 +140,7 @@ func (suite *ClientSuite) TestInvoke_pathParams() {
 
 	in := &clientRequest{ID: "123", Int: 42, Inner: clientInner{Skip: 100, Flag: true}}
 	out := &clientResponse{}
-	err := client.Invoke(context.Background(), "GET", "/foo/:ID/:Int/:bar/:Inner.Skip/:Nope", in, out)
+	err := client.Invoke(context.Background(), "GET", "/foo/{ID}/{Int}/{bar}/{Inner.Skip}/{Nope}", in, out)
 	assert.NoError(err)
 	assert.Equal("Bob", out.ID)
 	assert.Equal("Loblaw", out.Name)
@@ -291,7 +292,7 @@ func (suite *ClientSuite) respond(status int, body *clientResponse) (*http.Respo
 }
 
 func (suite *ClientSuite) unmarshal(r *http.Request) (*clientRequest, error) {
-	defer r.Body.Close()
+	defer quiet.Close(r.Body)
 	out := &clientRequest{}
 	return out, json.NewDecoder(r.Body).Decode(out)
 }

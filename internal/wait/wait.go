@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
 
 // InterruptSignal creates a channel that will accept the next SIGTERM or SIGINT
@@ -46,4 +47,24 @@ func ContextOrGroupOrInterrupt(ctx context.Context, wg *sync.WaitGroup) {
 	}()
 
 	<-unblock
+}
+
+// WithTimeout waits for the given wait group to complete normally unless the given amount of time has passed. This
+// handles the case where you expect your test to do N number of things, and you expect that they'll finish at least
+// in a certain amount of time.
+//
+// WARNING: If your wait group does not ever finish, this will leak a channel, so you should only use this in unit
+// tests where you expect the lifespan of the process to be short!
+func WithTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return false // completed normally
+	case <-time.After(timeout):
+		return true // timed out
+	}
 }

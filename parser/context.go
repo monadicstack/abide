@@ -6,7 +6,6 @@ import (
 	"go/token"
 	"go/types"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -432,7 +431,7 @@ type GatewayRoute struct {
 	Function *ServiceFunctionDeclaration
 	// GatewayType is a descriptor for the type of gateway this route should register with (e.g. "API" or "EVENT").
 	GatewayType string
-	// Method indicates if the RPC gateway should use a GET, POST, etc when exposing this operation via HTTP.
+	// Method indicates if the RPC gateway should use a GET, POST, etc. when exposing this operation via HTTP.
 	Method string
 	// Path defines the URL pattern to provide to the gateway's router/mux to access this operation.
 	Path string
@@ -440,15 +439,23 @@ type GatewayRoute struct {
 	Status int
 }
 
-// QualifiedPath returns the route's path with the service's PathPrefix prepended to it.
+// QualifiedPath returns the route's path with the service's PathPrefix prepended to it. This includes a leading "/"
+// so that all clients/servers can expect that to be in place (so we don't need to re-normalize this over and over).
 func (route *GatewayRoute) QualifiedPath() string {
-	switch route.GatewayType {
-	case "API":
-		path, _ := url.JoinPath(route.Function.Service.Gateway.PathPrefix, route.Path)
+	prefix := strings.Trim(route.Function.Service.Gateway.PathPrefix, "/")
+	path := strings.Trim(route.Path, "/")
+
+	// The pub/sub gateway doesn't care about your HTTP remapping of paths. The event keys are locked to the name
+	// service, dot, name of the function.
+	if route.GatewayType == "EVENTS" {
 		return path
-	default:
-		return route.Path
 	}
+
+	// Only prepend the HTTP path prefix (e.g. "v2") if there's one defined on the service in the first place.
+	if prefix != "" {
+		return "/" + prefix + "/" + path
+	}
+	return "/" + path
 }
 
 // MethodMatches returns true when the route's method matches at least one of 'these' options.

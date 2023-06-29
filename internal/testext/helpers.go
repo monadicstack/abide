@@ -7,6 +7,7 @@ import "sync"
 type Sequence struct {
 	lock   sync.Mutex
 	values []string
+	wg     *sync.WaitGroup
 }
 
 // Append writes the next value for the piece of code that executed.
@@ -30,8 +31,22 @@ func (seq *Sequence) Values() []string {
 	return seq.values
 }
 
+// WaitGroup returns the wait group that helps synchronize the async routines filling this sequence.
+func (seq *Sequence) WaitGroup() *sync.WaitGroup {
+	return seq.wg
+}
+
 // Reset erases all current values in the sequence, allowing you to re-use this sequence multiple
 // times within the same test case.
 func (seq *Sequence) Reset() {
+	seq.ResetWithWorkers(0)
+}
+
+// ResetWithWorkers erases all current values in the sequence and update the underlying wait group
+// to expect this many 'Done()' invocations. This allows you to re-use this sequence multiple times
+// within the same test case.
+func (seq *Sequence) ResetWithWorkers(waitGroupCount int) {
 	seq.values = nil
+	seq.wg = &sync.WaitGroup{}
+	seq.wg.Add(waitGroupCount)
 }

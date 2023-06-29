@@ -26,7 +26,6 @@ func NewGateway(address string, options ...GatewayOption) *Gateway {
 		router:     router,
 		codecs:     codec.New(),
 		middleware: HTTPMiddlewareFuncs{},
-		pathPrefix: "",
 		endpoints:  map[httpRoute]services.Endpoint{},
 		server:     &http.Server{Addr: address, Handler: router},
 		tlsCert:    "",
@@ -48,7 +47,6 @@ func NewGateway(address string, options ...GatewayOption) *Gateway {
 type Gateway struct {
 	codecs     codec.Registry
 	middleware HTTPMiddlewareFuncs
-	pathPrefix string
 	endpoints  map[httpRoute]services.Endpoint
 	router     *httptreemux.TreeMux
 	server     *http.Server
@@ -108,7 +106,7 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 	// And yes, we're ignoring the error, but that only happens if JoinPath can't parse the
 	// first parameter as a URL. Since that's hardcoded to something that is guaranteed to parse
 	// properly, we're good.
-	path, _ := url.JoinPath("/", gw.pathPrefix, route.Path)
+	path := gw.normalizePath(route)
 	method := strings.ToUpper(route.Method)
 
 	// We want to try and make sure that our bookkeeping tasks like request ids, metadata,
@@ -136,6 +134,23 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 	gw.endpoints[httpRoute{Method: http.MethodOptions, Path: path}] = endpoint
 	gw.router.UsingContext().Handle(method, path, gw.middleware.Then(httpHandler))
 	gw.registerOptions(path)
+}
+
+// normalizePath takes all disparate pathing information at the service and endpoint levels and returns the
+// actual path that we will feed to the underlying HTTP router. The steps include:
+//
+// - Converting /user/{User.ID} brace variable to  /user/:User.ID colon format.
+func (gw *Gateway) normalizePath(route services.EndpointRoute) string {
+	// The HTTP router expects variables to be in colon-format (e.g. ":User.ID"). We allow you to use
+	// brace format (e.g. "{User.ID}"), so convert variables to the router's format.
+	pathSegments := strings.Split(route.Path, "/")
+	for i, segment := range pathSegments {
+		if strings.HasPrefix(segment, "{") && strings.HasSuffix(segment, "}") {
+			pathSegments[i] = ":" + segment[1:len(segment)-1]
+		}
+	}
+
+	return strings.Join(pathSegments, "/")
 }
 
 func (gw *Gateway) registerOptions(path string) {

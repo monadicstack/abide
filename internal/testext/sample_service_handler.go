@@ -3,6 +3,7 @@ package testext
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -137,6 +138,7 @@ func (s SampleServiceHandler) Sleep(_ context.Context, req *SampleRequest) (*Sam
 }
 
 func (s SampleServiceHandler) TriggerUpperCase(_ context.Context, req *SampleRequest) (*SampleResponse, error) {
+	fmt.Println("[INVOKING] SampleService.TriggerUpperCase: " + req.Text)
 	s.Sequence.Append("TriggerUpperCase:" + req.Text)
 	return &SampleResponse{Text: strings.ToUpper(req.Text)}, nil
 }

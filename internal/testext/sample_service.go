@@ -19,7 +19,7 @@ import (
 // run integration tests using our code-generated clients. Each method is nothing special, but
 // they each do something a little differently than the rest to flex different parts of the framework.
 //
-// PREFIX v2
+// PREFIX /v2
 type SampleService interface {
 	// Defaults simply utilizes all of the framework's default behaviors.
 	Defaults(context.Context, *SampleRequest) (*SampleResponse, error)
@@ -30,7 +30,7 @@ type SampleService interface {
 	// ComplexValuesPath flexes our ability to encode/decode non-flat structs while
 	// specifying them via path and query string.
 	//
-	// GET /complex/values/:InUser.ID/:InUser.Name/woot
+	// GET /complex/values/{InUser.ID}/{InUser.Name}/woot
 	ComplexValuesPath(context.Context, *SampleComplexRequest) (*SampleComplexResponse, error)
 
 	// Fail4XX always returns a non-nil 400-series error.
@@ -43,21 +43,21 @@ type SampleService interface {
 	// by providing routing-related Doc Options.
 	//
 	// HTTP 202
-	// GET /custom/route/1/:ID/:Text
+	// GET /custom/route/1/{ID}/{Text}
 	CustomRoute(context.Context, *SampleRequest) (*SampleResponse, error)
 
 	// CustomRouteQuery performs a service operation where you override default behavior
 	// by providing routing-related Doc Options. The input data relies on the path
 	//
 	// HTTP 202
-	// GET /custom/route/2/:ID
+	// GET /custom/route/2/{ID}
 	CustomRouteQuery(context.Context, *SampleRequest) (*SampleResponse, error)
 
 	// CustomRouteBody performs a service operation where you override default behavior
 	// by providing routing-related Doc Options, but rely on body encoding rather than path.
 	//
 	// HTTP 201
-	// PUT /custom/route/3/:ID
+	// PUT /custom/route/3/{ID}
 	CustomRouteBody(context.Context, *SampleRequest) (*SampleResponse, error)
 
 	// OmitMe exists in the service, but should be excluded from the public API.
@@ -94,12 +94,17 @@ type SampleService interface {
 	 Event based endpoints
 	*/
 
+	// TriggerUpperCase ensures that events still fire as "SampleService.TriggerUpperCase" even though
+	// we are going to set a different HTTP path.
+	//
+	// GET /Upper/Case/WootyAndTheBlowfish
 	TriggerUpperCase(context.Context, *SampleRequest) (*SampleResponse, error)
 	TriggerLowerCase(context.Context, *SampleRequest) (*SampleResponse, error)
 	TriggerFailure(context.Context, *SampleRequest) (*SampleResponse, error)
 
 	// ListenerA fires on only one of the triggers.
 	//
+	// GET /ListenerA/Woot
 	// ON SampleService.TriggerUpperCase
 	ListenerA(context.Context, *SampleRequest) (*SampleResponse, error)
 
