@@ -399,3 +399,36 @@ func (suite *GoClientSuite) TestMiddleware_shortCircuitError() {
 	_, err := client.Defaults(ctx, &testext.SampleRequest{Text: "Ignore This"})
 	suite.ErrorMatches(err, 429, "nope")
 }
+
+func (suite *GoClientSuite) TestRoles() {
+	address, shutdown := suite.startServer()
+	defer shutdown()
+	ctx, client := suite.init(address)
+
+	type testCase struct {
+		ID       string
+		UserID   string
+		Expected []string
+	}
+
+	runTest := func(c testCase) {
+		res, err := client.SecureWithRoles(ctx, &testext.SampleSecurityRequest{
+			ID:   c.ID,
+			User: testext.SampleUser{ID: c.UserID},
+		})
+		suite.Require().NoError(err)
+		suite.Equal(c.Expected, res.Roles)
+	}
+
+	runTest(testCase{
+		ID:       "",
+		UserID:   "",
+		Expected: []string{"admin.write", "user..write", "user..admin", "junk..crap"},
+	})
+
+	runTest(testCase{
+		ID:       "123",
+		UserID:   "456",
+		Expected: []string{"admin.write", "user.123.write", "user.456.admin", "junk..crap"},
+	})
+}

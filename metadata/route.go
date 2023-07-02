@@ -46,6 +46,14 @@ type EndpointRoute struct {
 	// that requests get to this endpoint. For API endpoints, it's the request path
 	// like "/user/{ID}" and for event endpoints, it's the subscription key like "FooService.Save".
 	Path string
+	// Roles are used for role-based security where you can say that this endpoint requires the user/caller
+	// to have either "admin.write" or "group.write" privileges. When defining your services, you can parameterize
+	// your roles such as "group.{ID}.write", but the ones stored in this slice should have already been
+	// resolved with the appropriate runtime values (e.g. "group.123.write").
+	//
+	// Friendly reminder that these are the roles you want the security layer to look for - it's
+	// not necessarily what the caller actually has!
+	Roles []string
 }
 
 // QualifiedName returns the fully-qualified name/identifier of this service operation. It

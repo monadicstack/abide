@@ -15,6 +15,7 @@ import (
 
 	"github.com/monadicstack/abide/codec"
 	"github.com/monadicstack/abide/fail"
+	"github.com/monadicstack/abide/internal/naming"
 	"github.com/monadicstack/abide/internal/quiet"
 	"github.com/monadicstack/abide/services"
 )
@@ -243,7 +244,7 @@ func (c Client) buildURL(method string, path string, serviceRequest any) string 
 	attributes := c.codecs.DefaultValueEncoder().EncodeValues(serviceRequest)
 
 	path = strings.Trim(path, "/")
-	pathSegments := strings.Split(path, "/")
+	pathSegments := naming.TokenizePath(path, '/')
 
 	// Using the mapping of field names to request values (attributes), fill in the path
 	// pattern with real value request values.
@@ -251,7 +252,7 @@ func (c Client) buildURL(method string, path string, serviceRequest any) string 
 	// Example: "/user/{UserID}/message/{ID}" --> "/user/1234/message/5678"
 	for i, pathSegment := range pathSegments {
 		// Leave fixed segments alone (e.g. "user" in "/user/{id}/messages", but not "{id}")
-		if c.fixedSegment(pathSegment) {
+		if !naming.IsPathVariable(pathSegment) {
 			continue
 		}
 

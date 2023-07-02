@@ -308,8 +308,9 @@ func (suite *LocalBrokerSuite) TestPublish_groupRoundRobin() {
 	suite.subscribeGroup(broker, results, "Foo", "1", "0")
 	suite.subscribeGroup(broker, results, "Foo", "1", "1")
 	suite.subscribeGroup(broker, results, "*", "1", "2")
+	suite.subscribeGroup(broker, results, "Foo", "2", "3") // different group
 
-	results.ResetWithWorkers(7)
+	results.ResetWithWorkers(21)
 	suite.publish(broker, "Foo", "A")
 	suite.publish(broker, "Foo", "B")
 	suite.publish(broker, "Foo", "C")
@@ -318,13 +319,33 @@ func (suite *LocalBrokerSuite) TestPublish_groupRoundRobin() {
 	suite.publish(broker, "Foo", "F")
 	suite.publish(broker, "Foo", "G")
 	suite.assertFired(results, []string{
+		// The "1" group listening for the "Foo" topic should round-robin after each message.
 		"Foo:1:0:A",
 		"Foo:1:1:B",
-		"*:1:2:C",
-		"Foo:1:0:D",
-		"Foo:1:1:E",
-		"*:1:2:F",
+		"Foo:1:0:C",
+		"Foo:1:1:D",
+		"Foo:1:0:E",
+		"Foo:1:1:F",
 		"Foo:1:0:G",
+
+		// Even though it's the same "1" group, the "*" topic is going to treat this as a different stream
+		// of results. Not sure if this is the best behavior, but that's what it is for now.
+		"*:1:2:A",
+		"*:1:2:B",
+		"*:1:2:C",
+		"*:1:2:D",
+		"*:1:2:E",
+		"*:1:2:F",
+		"*:1:2:G",
+
+		// The "2" group listening for the "Foo" has only one member and it receives messages independent of "1"
+		"Foo:2:3:A",
+		"Foo:2:3:B",
+		"Foo:2:3:C",
+		"Foo:2:3:D",
+		"Foo:2:3:E",
+		"Foo:2:3:F",
+		"Foo:2:3:G",
 	})
 }
 

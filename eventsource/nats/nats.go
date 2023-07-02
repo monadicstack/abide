@@ -54,7 +54,7 @@ type client struct {
 	jetstream nats.JetStreamContext
 }
 
-func (c client) Publish(ctx context.Context, key string, payload []byte) error {
+func (c *client) Publish(ctx context.Context, key string, payload []byte) error {
 	if err := c.loadStream(key); err != nil {
 		return fmt.Errorf("nats publish: %w", err)
 	}
@@ -77,7 +77,7 @@ func (c *client) Subscribe(key string, handlerFunc eventsource.EventHandlerFunc)
 	return subscription{sub: sub}, nil
 }
 
-func (c client) SubscribeGroup(key string, group string, handlerFunc eventsource.EventHandlerFunc) (eventsource.Subscription, error) {
+func (c *client) SubscribeGroup(key string, group string, handlerFunc eventsource.EventHandlerFunc) (eventsource.Subscription, error) {
 	if err := c.loadStream(key); err != nil {
 		return nil, fmt.Errorf("nats subscribe group: %w", err)
 	}
@@ -92,7 +92,7 @@ func (c client) SubscribeGroup(key string, group string, handlerFunc eventsource
 	return subscription{sub: sub}, nil
 }
 
-func (c client) toMsgHandler(handlerFunc eventsource.EventHandlerFunc) nats.MsgHandler {
+func (c *client) toMsgHandler(handlerFunc eventsource.EventHandlerFunc) nats.MsgHandler {
 	return func(m *nats.Msg) {
 		err := handlerFunc(context.Background(), &eventsource.EventMessage{
 			Timestamp: time.Now(),

@@ -9,6 +9,10 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+func TestNamingSuite(t *testing.T) {
+	suite.Run(t, new(NamingSuite))
+}
+
 type NamingSuite struct {
 	suite.Suite
 }
@@ -156,6 +160,66 @@ func (suite *NamingSuite) TestUpperCamel() {
 	r.Equal("5OOBAR", naming.ToUpperCamel("5OOBAR"))
 }
 
-func TestNamingSuite(t *testing.T) {
-	suite.Run(t, new(NamingSuite))
+func (suite *NamingSuite) TestIsPathVariable() {
+	r := suite.Require()
+	r.False(naming.IsPathVariable(""))
+	r.False(naming.IsPathVariable("foo"))
+	r.False(naming.IsPathVariable(":foo"))
+	r.False(naming.IsPathVariable("{foo"))  // no closing brace
+	r.False(naming.IsPathVariable("foo}"))  // no opening brace
+	r.False(naming.IsPathVariable("f{o}o")) // braces must be at the start/end of the string
+	r.False(naming.IsPathVariable("{}"))    // must have a variable name inside the braces
+
+	r.True(naming.IsPathVariable("{foo}"))
+	r.True(naming.IsPathVariable("{foo.bar}"))
+	r.True(naming.IsPathVariable("{Foo.Bar.Baz}"))
+	r.True(naming.IsPathVariable("{Foo.{Bar}.Baz}")) // technically true but will break at runtime most likely
+}
+
+func (suite *NamingSuite) TestPathVariableName() {
+	r := suite.Require()
+	r.Equal("", naming.PathVariableName(""))
+	r.Equal("", naming.PathVariableName("foo"))
+	r.Equal("", naming.PathVariableName(":foo"))
+	r.Equal("", naming.PathVariableName("{foo"))
+	r.Equal("", naming.PathVariableName("foo}"))
+	r.Equal("", naming.PathVariableName("f{o}o"))
+	r.Equal("", naming.PathVariableName("{}"))
+
+	r.Equal("foo", naming.PathVariableName("{foo}"))
+	r.Equal("foo.bar", naming.PathVariableName("{foo.bar}"))
+	r.Equal("Foo.Bar.Baz", naming.PathVariableName("{Foo.Bar.Baz}"))
+	r.Equal("Foo.{Bar}.Baz", naming.PathVariableName("{Foo.{Bar}.Baz}"))
+}
+
+func (suite *NamingSuite) TestTokenizePath() {
+	testCase := func(path string, delim rune, expectedTokens []string) {
+		suite.Require().Equal(expectedTokens, naming.TokenizePath(path, delim))
+	}
+
+	testCase("", '/', []string{})
+
+	// Paths without variables
+	testCase("foo", '/', []string{"foo"})
+	testCase("foo/bar", '/', []string{"foo", "bar"})
+	testCase("foo/bar/baz.goo", '/', []string{"foo", "bar", "baz.goo"})
+	testCase("foo.bar.baz.goo", '/', []string{"foo.bar.baz.goo"})
+	testCase("foo.bar.baz.goo", '.', []string{"foo", "bar", "baz", "goo"})
+
+	// Paths with variables
+	testCase("{foo}", '/', []string{"{foo}"})
+	testCase("{foo}/bar/{baz}", '/', []string{"{foo}", "bar", "{baz}"})
+	testCase("{foo/moo}/bar/{baz}", '/', []string{"{foo/moo}", "bar", "{baz}"})
+	testCase("{foo.moo}.bar.{baz.raz}", '.', []string{"{foo.moo}", "bar", "{baz.raz}"})
+
+	// How to treat trailing delimiters
+	testCase("/", '/', []string{""})
+	testCase("foo///", '/', []string{"foo", "", ""})
+
+	// Weirdo cases
+	testCase("foo///junk/bar/{baz}", '/', []string{"foo", "", "", "junk", "bar", "{baz}"})
+	testCase("{foo}junk/bar/{baz}", '/', []string{"{foo}junk", "bar", "{baz}"})
+	testCase("{f{o}o}junk/bar/{baz}", '/', []string{"{f{o}o}junk", "bar", "{baz}"})
+	testCase("{f{o}/o}junk/bar/{baz}", '/', []string{"{f{o}/o}junk", "bar", "{baz}"})
+	testCase("{f{o}/o}junk/bar/{baz}", '.', []string{"{f{o}/o}junk/bar/{baz}"})
 }

@@ -25,6 +25,17 @@ type Endpoint struct {
 	// NewInput returns a pointer to the struct that we pass into the handler function
 	// for this input (e.g. "*LoginRequest"). It is the request struct pointer.
 	NewInput func() StructPointer
+	// Roles helps support role-based security by defining role patterns to indicate which
+	// users are allowed to access this endpoint.  For example:
+	//
+	//    endpoint.Roles = []string{
+	//        "admin.write",
+	//        "group.{Group.ID}.write",
+	//    }
+	//
+	// Notices that the roles should be allowed to have path variables that we can fill in
+	// at runtime with the incoming binding data.
+	Roles []string
 	// Routes defines the actual ingress routes that allow this service operation to
 	// be invoked by various gateways. For instance, they tell you that you can invoke
 	// the API call "GET /user/{ID}" to invoke it or that it should trigger when the

@@ -424,6 +424,7 @@ type CalculatorService interface {
     // in this service. It will even fire when FixWord is called in
     // a completely different service!
     //
+    // ROLES admin.read
     // HTTP OMIT
     // ON CalculatorService.Add
     // ON CalculatorService.Sub
@@ -470,7 +471,7 @@ curl http://localhost:9000/v1/difference/5/2
 Use these options to your heart's content if you want your API
 to feel more REST-ful instead of RPC-ful.
 
-#### Function: HTTP {StatusCode}
+#### Method: HTTP {StatusCode}
 
 This lets you have the API return a non-200 status code on success.
 For instance, the Add function's route will return a `202 Accepted`
@@ -479,7 +480,7 @@ status when it responds with the answer instead of `200 OK`.
 Since we didn't specify anything special for the Sub method, it
 will continue to respond with `200 OK`, same as before.
 
-#### Function: HTTP OMIT
+#### Method: HTTP OMIT
 
 Sometimes you want your service to be able to perform operations
 that you don't want to expose to the outside world. Perhaps this
@@ -494,7 +495,7 @@ appear in your Go client because we need to satisfy the service
 interface, but you'll receive a 404 error if you attempt to
 invoke it.
 
-#### Function: ON {ServiceName.MethodName}
+#### Method: ON {ServiceName.MethodName}
 
 This is what we used in the previous section to allow services
 to trigger workflow events. The format is always `ON ServiceName.MethodName`.
@@ -504,6 +505,50 @@ event name is ALWAYS the same no matter what.
 As you can see in the example above, you can have as many `ON`
 triggers as you want on a single method, and they do not even
 need to be from the same service!
+
+#### Method: ROLES roleA,roleB,roleC
+
+Similar to the version number on your service, this option doesn't alter the
+behavior of your service at all. What it does provide, however, is a way to apply
+some dynamic metadata to your request context that you can use to make your authorization
+layer easier to implement.
+
+Let's say you had a service operation that can only be run by system admins or
+users with rights to edit the group you're modifying:
+
+```go
+// RenameGroup changes a group's display name.
+//
+// PUT /group/{ID}/name
+// HTTP 200
+// ROLES admin.write, group.{ID}.write
+func (svc *GroupService) RenameGroup(ctx context.Context, req *RenameGroupRequest) (*RenameGroupResponse, error) {
+    // This slice will have 2 elements in it. The values will depend on the URL used
+    // to hit this API endpoint. If you `PUT /group/123/name` then the slice will contain
+    // the values "admin.write" and "group.123.write". If you `PUT /group/789/name` then
+    // you'll have "group.789.write" as the second value.
+    //
+    // Abide will automatically bind the "{ID}" value in the role just like it did
+    // when populating your request struct. It follows the exact same binding rules, so
+    // if you know how to customize URL routes, you can have exact roles to check for.
+    requiredRoles := metadata.Route(ctx).Roles
+
+    // Not Abide stuff... this is your black box that gets info about the authenticated caller
+    // and checks to see that it contains any of the 'requiredRoles'
+    if !authorization.HasAnyRole(ctx, requiredRoles) {
+        return nil, fail.Forbidden('no soup for you!')
+    }
+
+    // ... do the normal renaming work you'd normally do ...
+}
+```
+
+Because Abide automatically populates path variables in your role names, you can
+very easily make a single `AuthorizationMiddleware` that works for all endpoints in
+all your services. This way you're not copy/pasting these 3 lines to high hell. Yay!
+
+At some point Abide might get even more opinionated and provide ways to carry this info
+around, but for now that's an exercise for the user.
 
 ## Error Handling
 

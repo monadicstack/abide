@@ -118,6 +118,11 @@ type SampleService interface {
 	// ON SampleService.ListenerA
 	// ON OtherService.SpaceOut
 	ListenerB(context.Context, *SampleRequest) (*SampleResponse, error)
+
+	// SecureWithRoles lets us test role based security by looking at the 'roles' doc option.
+	//
+	// ROLES admin.write,user.{ID}.write ,   user.{User.ID}.admin, junk.{NotReal}.crap
+	SecureWithRoles(context.Context, *SampleSecurityRequest) (*SampleSecurityResponse, error)
 }
 
 type SampleRequest struct {
@@ -147,6 +152,15 @@ type SampleUser struct {
 	// MarshalToString makes sure that we can use custom marshaling of struct values.
 	// This is NOT globally supported in all client languages - just Go for now.
 	MarshalToObject MarshalToObject
+}
+
+type SampleSecurityRequest struct {
+	ID   string
+	User SampleUser
+}
+
+type SampleSecurityResponse struct {
+	Roles []string
 }
 
 // MarshalToString implements MarshalJSON/UnmarshalJSON to show that you can convert a struct

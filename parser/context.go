@@ -131,6 +131,9 @@ type ServiceFunctionDeclaration struct {
 	// contains things like the HTTP method/path to register w/ the API gateway or the name of the topic/key
 	// to subscribe to in an event gateway.
 	Routes GatewayRoutes
+	// Roles defines the role-based security identifiers that a user/principal must have in order to access
+	// this endpoint. These can be exact values like "admin.write" or parameterized like "group.{Group.ID}.write".
+	Roles []string
 	// Documentation are all of the comments documenting this operation.
 	Documentation DocumentationLines
 	// Service represents the interface/service that this function belongs to.

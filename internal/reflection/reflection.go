@@ -129,3 +129,28 @@ func set(value reflect.Value, out reflect.Value) bool {
 	}
 	return false
 }
+
+// ToBindingValue is used for fetching one-off values from struct instances given their binding string. For
+// example, you can take an instance of a User{} struct and the binding path "Group.ID" to fetch the user's group id.
+func ToBindingValue(value any, bindingPath string, out any) bool {
+	if bindingPath == "" {
+		return Assign(value, out)
+	}
+
+	nextAttribute, remainingPath, _ := strings.Cut(bindingPath, ".")
+	reflectValue := reflect.ValueOf(value)
+	reflectType := reflectValue.Type()
+
+	if reflectType.Kind() == reflect.Ptr {
+		reflectType = reflectType.Elem()
+		reflectValue = reflectValue.Elem()
+	}
+
+	field, ok := FindField(reflectType, nextAttribute)
+	if !ok {
+		return false
+	}
+
+	bindingValue := reflectValue.FieldByIndex(field.Index).Interface()
+	return ToBindingValue(bindingValue, remainingPath, out)
+}

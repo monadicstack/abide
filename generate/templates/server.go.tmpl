@@ -53,8 +53,13 @@ func {{ $serviceFunc }}(handler {{ $serviceType }}, middleware ...services.Middl
 					}
 					return handler.{{ .Name }}(ctx, typedReq)
 				}),
+				Roles:  []string{
+                	{{- range .Roles }}
+                    "{{ . }}",
+                	{{- end }}
+				},
 				Routes: []services.EndpointRoute{
-				{{ range .Routes }}
+				{{- range .Routes }}
 					{
 						GatewayType: "{{ .GatewayType }}",
 						Method:      "{{ .Method }}",

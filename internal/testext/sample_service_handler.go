@@ -162,3 +162,8 @@ func (s SampleServiceHandler) ListenerB(_ context.Context, req *SampleRequest) (
 	s.Sequence.Append("ListenerB:" + req.Text)
 	return &SampleResponse{Text: "ListenerB:" + req.Text}, nil
 }
+
+func (s SampleServiceHandler) SecureWithRoles(ctx context.Context, req *SampleSecurityRequest) (*SampleSecurityResponse, error) {
+	s.Sequence.Append("SecureWithRoles:" + req.ID)
+	return &SampleSecurityResponse{Roles: metadata.Route(ctx).Roles}, nil
+}

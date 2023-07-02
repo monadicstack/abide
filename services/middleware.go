@@ -2,6 +2,12 @@ package services
 
 import (
 	"context"
+	"strings"
+
+	"github.com/monadicstack/abide/internal/naming"
+	"github.com/monadicstack/abide/internal/reflection"
+	"github.com/monadicstack/abide/internal/slices"
+	"github.com/monadicstack/abide/metadata"
 )
 
 // MiddlewareFunc is a function that can be used to decorate a service method/endpoint's handler.
@@ -40,5 +46,28 @@ func recoverMiddleware() MiddlewareFunc {
 			}
 		}()
 		return next(ctx, req)
+	}
+}
+
+// rolesMiddleware takes the raw doc option roles list such as ["admin.write", "group.{ID}.write"] and populates
+// the path variables w/ runtime values, so you end up with a roles list like ["admin.write", "group.123.write"]. For
+// any path variables that can't be properly mapped to a runtime value, those will end up blank (e.g. "group..write").
+func rolesMiddleware(endpoint Endpoint) MiddlewareFunc {
+	return func(ctx context.Context, req any, next HandlerFunc) (any, error) {
+		populateRole := func(role string) string {
+			segments := naming.TokenizePath(role, '.')
+			for i, segment := range segments {
+				if pathVar := naming.PathVariableName(segment); pathVar != "" {
+					var runtimeValue string
+					reflection.ToBindingValue(req, pathVar, &runtimeValue)
+					segments[i] = runtimeValue
+				}
+			}
+			return strings.Join(segments, ".")
+		}
+
+		route := metadata.Route(ctx)
+		route.Roles = slices.Map(endpoint.Roles, populateRole)
+		return next(metadata.WithRoute(ctx, route), req)
 	}
 }
