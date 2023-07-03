@@ -1165,7 +1165,8 @@ If you prefer to stick to the standard Go toolchain for generating code, you can
 `//go:generate` comments to hook the Abide code generator into your build process. 
 
 For example, this generates the server/gateway, mock service, Go client, JS client,
-and Flutter/Dart client just by marking up your service definition a bit:
+and Flutter/Dart client, and OpenAPI documentation just by marking up your service
+definition a bit:
 
 ```go
 import (
@@ -1176,9 +1177,13 @@ import (
 //go:generate abide client  $GOFILE
 //go:generate abide client  $GOFILE --language=js
 //go:generate abide client  $GOFILE --language=flutter
-//go:generate abide client  $GOFILE --language=openapi
+//go:generate abide docs    $GOFILE
 //go:generate abide mock    $GOFILE
 
+// CalculatorService provides basic arithmetic operations.
+//
+// VERSION 1.0.0
+// PREFIX  v1
 type CalculatorService interface {
     ...
 }
@@ -1235,15 +1240,15 @@ func TestSomethingThatDependsOnAddFailure(t *testing.T) {
 ## Generate OpenAPI/Swagger Documentation (Experimental)
 
 Definitely a work in progress, but in addition to generating your backend and
-frontend assets, Frodo can generate OpenAPI 3.0 YAML files to describe your API.
+frontend assets, Abide can generate OpenAPI 3.0 YAML files to describe your API.
 It uses the name/type information from your Go code as well as the GoDoc comments
 that you (hopefully) write. Document your code in Go and you can get online API docs
 for free:
 
 ```bash
-frodo client calculator_service.go --language=openapi
+abide client calculator_service.go --language=openapi
   # or
-frodo client calculator_service.go --language=swagger
+abide client calculator_service.go --language=swagger
 ```
 
 Now you can feed the file gen/calculator_service.gen.swagger.yaml to your favorite 

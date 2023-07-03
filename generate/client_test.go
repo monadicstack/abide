@@ -5,7 +5,6 @@ package generate_test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os/exec"
 	"strings"
 	"time"
@@ -25,7 +24,7 @@ import (
 // The suite contains the logic to fire up a local instance of the gateway for the client to hit on the desired port
 // as well as the ability to shut it down after the test. You can then analyze each line of stdout to determine if
 // each interaction behaved as expected and write your Go assertions based on that. There will be more detail in the
-// Frodo architecture Markdown docs as to how this all works.
+// Abide architecture Markdown docs as to how this all works.
 type GeneratedClientSuite struct {
 	suite.Suite
 	addresses testext.FreeAddress
@@ -38,7 +37,7 @@ func (suite *GeneratedClientSuite) startServer() (string, func()) {
 		services.Listen(apis.NewGateway(address)),
 		services.Register(gen.SampleServiceServer(testext.SampleServiceHandler{Sequence: sequence})),
 	)
-	go server.Run()
+	go func() { _ = server.Run() }()
 
 	// Kinda crappy, but we need some time to make sure the server is up. Sometimes
 	// this goes so fast that the test case fires before the server is fully running.
@@ -99,9 +98,6 @@ func (suite *GeneratedClientSuite) ExpectFail(result ClientTestResult, status in
 // test case stuff), this will halt the current test case right here and now.
 func (suite *GeneratedClientSuite) RunExternalTest(command string) ClientTestResults {
 	stdout, err := exec.Command("/bin/zsh", "-c", command).Output()
-	if err != nil {
-		fmt.Println(">>>>>>>>>> STDOUT: ", string(stdout))
-	}
 	suite.Require().NoError(err, "Running '%v' should not fail at all.", command)
 	return ParseClientTestOutput(stdout)
 }

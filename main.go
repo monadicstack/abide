@@ -17,7 +17,7 @@ func main() {
 	rootCmd.AddCommand(cli.GenerateServer{}.Command())
 	rootCmd.AddCommand(cli.GenerateClient{}.Command())
 	rootCmd.AddCommand(cli.GenerateMock{}.Command())
-	// rootCmd.AddCommand(cli.GenerateDocs{}.Command())
+	rootCmd.AddCommand(cli.GenerateDocs{}.Command())
 	// rootCmd.AddCommand(cli.CreateService{}.Command())
 
 	log.SetFlags(0)

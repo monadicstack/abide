@@ -371,8 +371,8 @@ func (suite *ContextSuite) TestDocumentationLines_Trim() {
 
 func (suite *ContextSuite) TestGatewayFunctionOptions_SupportsBody() {
 	check := func(method string, expected bool) {
-		options := parser.GatewayFunctionOptions{Method: method}
-		suite.Require().Equal(expected, options.SupportsBody(), "Gateway.SupportsBody(%s) should be %v", method, expected)
+		options := parser.GatewayRoute{Method: method}
+		suite.Require().Equal(expected, options.SupportsRequestBody(), "GatewayRoute,SupportsRequestBody(%s) should be %v", method, expected)
 	}
 
 	check("", false)
@@ -395,10 +395,20 @@ func (suite *ContextSuite) TestGatewayFunctionOptions_SupportsBody() {
 }
 
 func (suite *ContextSuite) TestGatewayFunctionOptions_PathParameters() {
+	userType := parser.TypeDeclaration{
+		Fields: parser.FieldDeclarations{
+			&parser.FieldDeclaration{Name: "ID", Binding: &parser.FieldBindingOptions{Name: "ID"}},
+			&parser.FieldDeclaration{Name: "Name", Binding: &parser.FieldBindingOptions{Name: "name"}},
+			&parser.FieldDeclaration{Name: "User", Binding: &parser.FieldBindingOptions{Name: "dude"}},
+		},
+	}
+	userType.Fields[2].Type = &userType
+
 	fields := parser.FieldDeclarations{
 		&parser.FieldDeclaration{Name: "ID", Binding: &parser.FieldBindingOptions{Name: "ID"}},
 		&parser.FieldDeclaration{Name: "LastName", Binding: &parser.FieldBindingOptions{Name: "LastName"}},
 		&parser.FieldDeclaration{Name: "FirstName", Binding: &parser.FieldBindingOptions{Name: "first_name"}},
+		&parser.FieldDeclaration{Name: "User", Binding: &parser.FieldBindingOptions{Name: "User"}, Type: &userType},
 	}
 	request := &parser.TypeDeclaration{
 		Fields: fields,
@@ -406,7 +416,7 @@ func (suite *ContextSuite) TestGatewayFunctionOptions_PathParameters() {
 	function := &parser.ServiceFunctionDeclaration{
 		Request: request,
 	}
-	options := parser.GatewayFunctionOptions{
+	options := parser.GatewayRoute{
 		Function: function,
 	}
 
@@ -449,6 +459,13 @@ func (suite *ContextSuite) TestGatewayFunctionOptions_PathParameters() {
 	suite.Require().Equal("ID", params[0].Field.Name)
 	suite.Require().Equal("first_name", params[1].Name)
 	suite.Require().Equal("FirstName", params[1].Field.Name)
+
+	// Should recursively identify chained fields names.
+	options.Path = "/foo/{User.ID}/bar/{User.dude.name}"
+	params = options.PathParameters()
+	suite.Require().Len(params, 2)
+	suite.Require().Equal("User.ID", params[0].Name)
+	suite.Require().Equal("User.dude.name", params[1].Name)
 }
 
 func (suite *ContextSuite) TestGatewayFunctionOptions_QueryParameters() {
@@ -463,7 +480,7 @@ func (suite *ContextSuite) TestGatewayFunctionOptions_QueryParameters() {
 	function := &parser.ServiceFunctionDeclaration{
 		Request: request,
 	}
-	options := parser.GatewayFunctionOptions{
+	options := parser.GatewayRoute{
 		Function: function,
 	}
 

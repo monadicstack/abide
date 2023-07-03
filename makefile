@@ -3,7 +3,7 @@
 TEST_TIMEOUT=60s
 
 #
-# Builds the actual frodo CLI executable.
+# Builds the actual abide CLI executable.
 #
 build:
 	@ \
@@ -17,7 +17,7 @@ install: build
 #
 # Runs the all of the test suites for the entire Abide module.
 #
-test: test-unit
+test: test-unit test-integration
 
 #
 # Runs the self-contained unit tests that don't require code generation or anything like that to run.

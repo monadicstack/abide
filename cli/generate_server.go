@@ -8,14 +8,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// GenerateServerRequest contains all of the CLI options used in the "frodo client" command.
+// GenerateServerRequest contains all of the CLI options used in the "abide client" command.
 type GenerateServerRequest struct {
 	templateOption
 	// InputFileName is the service definition to parse/process (the "--service" option)
 	InputFileName string
 }
 
-// GenerateServer handles the registration and execution of the 'frodo gateway' CLI subcommand.
+// GenerateServer handles the registration and execution of the 'abide gateway' CLI subcommand.
 type GenerateServer struct{}
 
 // Command creates the Cobra struct describing this CLI command and its options.

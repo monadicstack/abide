@@ -52,13 +52,12 @@ func (suite *LocalBrokerSuite) publish(broker eventsource.Broker, key string, va
 
 func (suite *LocalBrokerSuite) subscribe(broker eventsource.Broker, sequence *testext.Sequence, key string) eventsource.Subscription {
 	subs, err := broker.Subscribe(key, func(ctx context.Context, evt *eventsource.EventMessage) error {
-		defer sequence.WaitGroup().Done()
-
 		if string(evt.Payload) == "error" {
 			return fmt.Errorf("nope")
 		}
 
 		sequence.Append(fmt.Sprintf("%s:%s", key, string(evt.Payload)))
+		sequence.WaitGroup().Done()
 		return nil
 	})
 	suite.Require().NoError(err, "There shouldn't be any issues subscribing locally... ever.")
@@ -67,13 +66,12 @@ func (suite *LocalBrokerSuite) subscribe(broker eventsource.Broker, sequence *te
 
 func (suite *LocalBrokerSuite) subscribeGroup(broker eventsource.Broker, sequence *testext.Sequence, key string, group string, which string) eventsource.Subscription {
 	subs, err := broker.SubscribeGroup(key, group, func(ctx context.Context, evt *eventsource.EventMessage) error {
-		defer sequence.WaitGroup().Done()
-
 		if string(evt.Payload) == "error" {
 			return fmt.Errorf("nope")
 		}
 
 		sequence.Append(fmt.Sprintf("%s:%s:%s:%s", key, group, which, string(evt.Payload)))
+		sequence.WaitGroup().Done()
 		return nil
 	})
 	suite.Require().NoError(err, "There shouldn't be any issues subscribing locally... ever.")
@@ -354,6 +352,7 @@ func (suite *LocalBrokerSuite) TestPublish_subscriberErrors() {
 	results := &testext.Sequence{}
 	broker := local.Broker(local.WithErrorHandler(func(err error) {
 		results.Append("oops")
+		results.WaitGroup().Done()
 	}))
 
 	suite.subscribeGroup(broker, results, "Foo", "1", "")
@@ -388,9 +387,7 @@ func (suite *LocalBrokerSuite) TestPublish_subscriberErrors() {
 
 func (suite *LocalBrokerSuite) TestUnsubscribe() {
 	results := &testext.Sequence{}
-	broker := local.Broker(local.WithErrorHandler(func(err error) {
-		results.Append("oops")
-	}))
+	broker := local.Broker()
 
 	s1 := suite.subscribe(broker, results, "Foo")
 	s2 := suite.subscribeGroup(broker, results, "Foo", "1", "")

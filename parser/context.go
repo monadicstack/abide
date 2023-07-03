@@ -188,10 +188,16 @@ func (fields FieldDeclarations) TransportFields() FieldDeclarations {
 // ByBindingName looks for a field whose (possibly) re-mapped name matches the given value. This
 // comparison is CASE INSENSITIVE, so "id" will find the field "ID".
 func (fields FieldDeclarations) ByBindingName(name string) *FieldDeclaration {
+	nextFieldName, recursiveFields, _ := strings.Cut(name, ".")
 	for _, field := range fields {
-		if strings.EqualFold(field.Binding.Name, name) {
+		if !strings.EqualFold(field.Binding.Name, nextFieldName) {
+			continue
+		}
+
+		if recursiveFields == "" {
 			return field
 		}
+		return field.Type.Fields.ByBindingName(recursiveFields)
 	}
 	return nil
 }
@@ -236,7 +242,7 @@ type ModuleDeclaration struct {
 	Directory string
 }
 
-// GoMod returns the absolute path to the "go.mod" file for this module on the system running frodo.
+// GoMod returns the absolute path to the "go.mod" file for this module on the system running abide.
 func (module ModuleDeclaration) GoMod() string {
 	return filepath.Join(module.Directory, "go.mod")
 }
@@ -471,23 +477,10 @@ func (route *GatewayRoute) MethodMatches(these ...string) bool {
 	return false
 }
 
-// GatewayFunctionOptions contains all of the configurable HTTP-related options for a single
-// function within your service (e.g. method, path, etc).
-type GatewayFunctionOptions struct {
-	// Function is a back-pointer to the service function these options correspond to.
-	Function *ServiceFunctionDeclaration
-	// Method indicates if the RPC gateway should use a GET, POST, etc when exposing this operation via HTTP.
-	Method string
-	// Path defines the URL pattern to provide to the gateway's router/mux to access this operation.
-	Path string
-	// Status indicates what success status code the gateway should use when responding via HTTP (e.g. 200, 202, etc)
-	Status int
-}
-
-// SupportsBody returns true when the method is either POST, PUT, or PATCH; the HTTP methods
+// SupportsRequestBody returns true when the method is either POST, PUT, or PATCH; the HTTP methods
 // where we expect you to feed request data via the request body rather than query string.
-func (opts GatewayFunctionOptions) SupportsBody() bool {
-	method := strings.ToUpper(opts.Method)
+func (route *GatewayRoute) SupportsRequestBody() bool {
+	method := strings.ToUpper(route.Method)
 	return method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch
 }
 
@@ -495,15 +488,15 @@ func (opts GatewayFunctionOptions) SupportsBody() bool {
 // the request struct that will be bound by those values at runtime. For instance, if the path
 // was "/user/{userID}/address/{addressID}", this will return a 2-element slice containing the request's
 // UserID and AddressID fields.
-func (opts GatewayFunctionOptions) PathParameters() GatewayParameters {
+func (route *GatewayRoute) PathParameters() GatewayParameters {
 	var results GatewayParameters
-	for _, segment := range strings.Split(opts.Path, "/") {
-		if !strings.HasPrefix(segment, "{") && !strings.HasSuffix(segment, "}") {
+	for _, segment := range strings.Split(route.Path, "/") {
+		paramName := naming.PathVariableName(segment)
+		if paramName == "" {
 			continue
 		}
 
-		paramName := segment[1 : len(segment)-1]
-		field := opts.Function.Request.Fields.ByBindingName(paramName)
+		field := route.Function.Request.Fields.ByBindingName(paramName)
 		if field == nil {
 			continue
 		}
@@ -520,18 +513,18 @@ func (opts GatewayFunctionOptions) PathParameters() GatewayParameters {
 // them in the query string of the URL when making a request. For instance, if your request struct
 // had an attribute "Limit uint64", then this includes a GatewayParameter that describes the
 // caller's ability to include "&Limit=123" in the query string.
-func (opts GatewayFunctionOptions) QueryParameters() GatewayParameters {
+func (route *GatewayRoute) QueryParameters() GatewayParameters {
 	var results GatewayParameters
 
 	// If you're doing a POST/PUT/PATCH, we expect every value to come from either
 	// the body or the path, not the query string.
-	if opts.SupportsBody() {
+	if route.SupportsRequestBody() {
 		return results
 	}
 
-	pathParams := opts.PathParameters()
+	pathParams := route.PathParameters()
 
-	for _, field := range opts.Function.Request.Fields {
+	for _, field := range route.Function.Request.Fields {
 		// Exclude any fields that will be bound using path parameters.
 		if pathParams.ByName(field.Binding.Name) != nil {
 			continue

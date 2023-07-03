@@ -55,7 +55,7 @@ func crapPants(err error) {
 		log.Println("")
 	case errors.Is(err, parser.ErrMissingGoMod):
 		log.Println("")
-		log.Println("  * Frodo only works with projects that use go modules")
+		log.Println("  * Abide only works with projects that use go modules")
 		log.Println("")
 	// We want all signature-related errors to give instructions about what you need.
 	case errors.Is(err, parser.ErrTypeNotStructPointer),

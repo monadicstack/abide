@@ -19,7 +19,7 @@ import (
 
 //go:embed templates/*
 
-// StandardTemplates provides access to all of the code generation templates that Frodo ships with out of the box.
+// StandardTemplates provides access to all of the code generation templates that Abide ships out of the box with.
 var StandardTemplates embed.FS
 
 // File runs the parsed service context through the given file template, generating the appropriate
