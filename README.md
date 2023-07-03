@@ -23,10 +23,11 @@ Event-Driven communication with almost no extra code on your part.
 
 ```shell
 go install github.com/monadicstack/abide@latest
+go get -u github.com/monadicstack/abide
 ```
-This will fetch the `abide` code generation executable as well
-as the runtime libraries that allow your services and clients to
-communicate with each other.
+This will fetch the `abide` code generation executable then add the
+runtime libraries that allow your services and clients to
+communicate with each other as a dependency to your project.
 
 ## Basic Example
 
@@ -1196,7 +1197,7 @@ test your code. If you prefer mocks, Abide can generate helpful mock implementat
 of your services to use in your tests. Using a similar command that we used for 
 generating our server and clients, you can do the following:
 
-```bash
+```shell
 abide mock calculator_service.go
 ```
 
@@ -1245,10 +1246,8 @@ It uses the name/type information from your Go code as well as the GoDoc comment
 that you (hopefully) write. Document your code in Go and you can get online API docs
 for free:
 
-```bash
-abide client calculator_service.go --language=openapi
-  # or
-abide client calculator_service.go --language=swagger
+```shell
+abide docs calculator_service.go
 ```
 
 Now you can feed the file gen/calculator_service.gen.swagger.yaml to your favorite 
