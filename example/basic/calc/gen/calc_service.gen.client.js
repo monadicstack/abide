@@ -394,7 +394,7 @@ function isJSON(response) {
 
 /**
 * Looks at the response value and attempts to peel off an error message from it using the standard
-* error JSON structures used by frodo gateways.
+* error JSON structures used by abide gateways.
 *
 * @param {*} err The error whose raw message you're trying to extract.
 * @returns {string}

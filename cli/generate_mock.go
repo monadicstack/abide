@@ -8,14 +8,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// GenerateMockRequest contains all of the CLI options used in the "frodo mock" command.
+// GenerateMockRequest contains all of the CLI options used in the "abide mock" command.
 type GenerateMockRequest struct {
 	templateOption
 	// InputFileName is the service definition to parse/process (the "--service" option)
 	InputFileName string
 }
 
-// GenerateMock handles the registration and execution of the 'frodo mock' CLI subcommand.
+// GenerateMock handles the registration and execution of the 'abide mock' CLI subcommand.
 type GenerateMock struct{}
 
 // Command creates the Cobra struct describing this CLI command and its options.

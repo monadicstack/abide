@@ -16,5 +16,5 @@ run-client:
 # Generates all of our RPC gateway/client artifacts from the service definitions.
 #
 generate:
-#	frodo gateway calc/calculator_service.go && \
-#	frodo client  calc/calculator_service.go
+#	abide server calc/calculator_service.go && \
+#	abide client calc/calculator_service.go

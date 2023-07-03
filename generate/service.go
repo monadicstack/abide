@@ -5,12 +5,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/monadicstack/abide/internal/quiet"
 )
 
-// ServiceScaffold creates the bare minimum code required to have a frodo-powered service. It
+// ServiceScaffold creates the bare minimum code required to have an abide-powered service. It
 // creates a directory for the service code to live, a declaration file that contains the
 // interface and model definitions, and a skeleton implementation. These all help establish some
-// base patterns you should use when working with frodo services.
+// base patterns you should use when working with abide services.
 func ServiceScaffold(request ServiceScaffoldRequest) error {
 	shortName := request.ServiceName
 	shortName = strings.TrimSuffix(shortName, "Service")
@@ -56,7 +58,7 @@ func ServiceScaffold(request ServiceScaffoldRequest) error {
 	return nil
 }
 
-// ServiceScaffoldRequest contains the inputs from our "frodo create" CLI command.
+// ServiceScaffoldRequest contains the inputs from our "abide create" CLI command.
 type ServiceScaffoldRequest struct {
 	// ServiceName is the value of the --service argument.
 	ServiceName string
@@ -91,7 +93,7 @@ func scaffoldTemplate(ctx scaffoldServiceContext, artifact FileTemplate) error {
 	if err != nil {
 		return fmt.Errorf("unable to open %s: %w", path, err)
 	}
-	defer outputFile.Close()
+	defer quiet.Close(outputFile)
 
 	code, err := artifact.Eval(ctx)
 	if err != nil {

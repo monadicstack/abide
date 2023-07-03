@@ -14,10 +14,12 @@ servers:
 
 paths:
     {{ range $method := .Service.Functions }}
-    {{ $pathFields := .Gateway.PathParameters }}
-    {{ $queryFields := .Gateway.QueryParameters }}
-    "{{ .Gateway.Path | OpenAPIPath }}":
-        {{ .Gateway.Method | ToLower }}:
+    {{ $apiRoute := .Routes.API }}
+    {{ if not $apiRoute }} {{ continue }} {{ end }}
+    {{ $pathFields := $apiRoute.PathParameters }}
+    {{ $queryFields := $apiRoute.QueryParameters }}
+    "{{ $apiRoute.Path | OpenAPIPath }}":
+        {{ $apiRoute.Method | ToLower }}:
             description: > {{ range .Documentation }}
                 {{ . }}{{ end }}
             {{ if or $pathFields.NotEmpty $queryFields.NotEmpty }}
@@ -45,7 +47,7 @@ paths:
                 {{ end }}
             {{ end }}
 
-            {{ if .Gateway.SupportsBody }}
+            {{ if $apiRoute.SupportsRequestBody }}
             requestBody:
                 content:
                      application/json:
@@ -54,7 +56,7 @@ paths:
             {{ end }}
 
             responses:
-                {{ .Gateway.Status }}:
+                {{ $apiRoute.Status }}:
                     description: Success
                     content:
                         application/json:
