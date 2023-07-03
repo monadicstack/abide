@@ -28,3 +28,13 @@ func Map[T any, U any](slice []T, mapper func(T) U) []U {
 	}
 	return output
 }
+
+// Contains returns true if any of the slice elements pass an == test w/ the given 'value'.
+func Contains[T comparable](slice []T, value T) bool {
+	for _, sliceValue := range slice {
+		if sliceValue == value {
+			return true
+		}
+	}
+	return false
+}
