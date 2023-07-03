@@ -226,6 +226,105 @@ Compile/run this program, and you should see the following output:
 ```
 That's it!
 
+## Creating a JavaScript Client
+
+The `abide` tool can actually generate a JS client that you
+can add to your frontend code (or React Native mobile code)
+to hide the complexity of making API calls to your backend
+service. Without any plugins or fuss, we can create a JS client of the same
+CalculatorService from earlier...
+
+```shell
+abide client calc/calculator_service.go --language=js
+    or
+abide client calc/calculator_service.go --language=node
+```
+
+This will create the file `calculator_service.gen.client.js`
+which you can include with your frontend codebase. Using it
+should look similar to the Go client we saw earlier:
+
+```js
+import {CalculatorService} from 'lib/calculator_service.gen.client';
+
+// The service client is a class that exposes all of the
+// operations as 'async' functions that resolve with the
+// result of the service call.
+//
+// All of the operations on the Go service are exposed here
+// as well. The arguments to these functions are the same as
+// the request struct in the Go code, and the return value
+// will match the response struct from your Go service.
+const service = new CalculatorService('http://localhost:9000');
+const add = await service.Add({A:5, B:2});
+const sub = await service.Sub({A:5, B:2});
+
+// Should print:
+// Add(5, 2) = 7
+// Sub(5, 2) = 3
+console.info('Add(5, 2) = ' + add.Result)
+console.info('Sub(5, 2) = ' + sub.Result)
+```
+
+Another subtle benefit of using the generated client is that your
+service/method documentation follows you in the generated code.
+It's included in the file as JSDoc comments so your
+documentation should be available to your IDE even when writing
+your frontend code.
+
+#### Node Support
+
+Abide uses the `fetch` function to make the actual HTTP requests,
+so if you are using Node 18+, you shouldn't need to do anything
+special as `fetch` is now in the global scope. If that's the
+case, ignore the next paragraph and subsequent sample code.
+
+If you're using an older version of node or just really prefer
+to use the classic `node-fetch` package, you can supply the
+fetch implementation to use when constructing your client:
+
+```js
+const fetch = require('node-fetch');
+
+const service = new CalculatorService('http://localhost:9000', {fetch});
+const add = await service.Add({A:5, B:2});
+const sub = await service.Sub({A:5, B:2});
+```
+
+## Creating a Dart/Flutter Client
+
+Just like the JS client, Abide can create a Dart client that you can embed
+in your Flutter apps so mobile frontends can consume your service.
+
+```shell
+abide client calc/calculator_service.go --language=dart
+  or
+abide client calc/calculator_service.go --language=flutter
+```
+
+This will create the file `calculator_service.gen.client.dart`. Add it
+to your Flutter codebase, and it behaves very similarly to the JS client.
+
+> The `HttpClient` from the standard `dart:io` package is NOT supported
+> in Flutter web applications. To support Flutter mobile as well as web,
+> Abide clients uses the [http](https://pub.dev/packages/http) package to
+> make requests to the backend API. You'll need to add that to your
+> pubspec for the following code to work:
+
+```dart
+import 'lib/calculator_service.gen.client.dart';
+
+var service = CalculatorServiceClient("http://localhost:9000");
+var add = await service.Add(AddRequest(A:5, B:2));
+var sub = await service.Sub(SubRequest(A:5, B:2));
+
+// Should print:
+// Add(5, 2) = 7
+// Sub(5, 2) = 3
+print('Add(5, 2) = ${add.Result}');
+print('Sub(5, 2) = ${sub.Result}');
+```
+
 For more examples of how to write services that let Abide take
 care of the RPC/API boilerplate, take a look in the [example/](https://github.com/monadicstack/abide/tree/main/example)
 directory of this repo.
@@ -653,98 +752,6 @@ func handleEventError(err error) {
 }
 ```
 
-## Creating a JavaScript Client
-
-The `abide` tool can actually generate a JS client that you
-can add to your frontend code (or React Native mobile code)
-to hide the complexity of making API calls to your backend
-service. Without any plugins or fuss, we can create a JS client of the same
-CalculatorService from earlier...
-
-```shell
-abide client calc/calculator_service.go --language=js
-```
-
-This will create the file `calculator_service.gen.client.js`
-which you can include with your frontend codebase. Using it
-should look similar to the Go client we saw earlier:
-
-```js
-import {CalculatorService} from 'lib/calculator_service.gen.client';
-
-// The service client is a class that exposes all of the
-// operations as 'async' functions that resolve with the
-// result of the service call.
-const service = new CalculatorService('http://localhost:9000');
-const add = await service.Add({A:5, B:2});
-const sub = await service.Sub({A:5, B:2});
-
-// Should print:
-// Add(5, 2) = 7
-// Sub(5, 2) = 3
-console.info('Add(5, 2) = ' + add.Result)
-console.info('Sub(5, 2) = ' + sub.Result)
-```
-
-Another subtle benefit of using the generated client is that your
-service/method documentation follows you in the generated code.
-It's included in the file as JSDoc comments so your
-documentation should be available to your IDE even when writing
-your frontend code.
-
-#### Node Support
-
-Abide uses the `fetch` function to make the actual HTTP requests,
-so if you are using Node 18+, you shouldn't need to do anything
-special as `fetch` is now in the global scope. If that's the
-case, ignore the next paragraph and subsequent sample code.
-
-If you're using an older version of node or just really prefer
-to use the classic `node-fetch` package, you can supply the
-fetch implementation to use when constructing your client:
-
-```js
-const fetch = require('node-fetch');
-
-const service = new CalculatorService('http://localhost:9000', {fetch});
-const add = await service.Add({A:5, B:2});
-const sub = await service.Sub({A:5, B:2});
-```
-
-## Creating a Dart/Flutter Client
-
-Just like the JS client, Abide can create a Dart client that you can embed
-in your Flutter apps so mobile frontends can consume your service.
-
-```shell
-abide client calc/calculator_service.go --language=dart
-  or
-abide client calc/calculator_service.go --language=flutter
-```
-
-This will create the file `calculator_service.gen.client.dart`. Add it
-to your Flutter codebase, and it behaves very similarly to the JS client.
-
-> The `HttpClient` from the standard `dart:io` package is NOT supported
-> in Flutter web applications. To support Flutter mobile as well as web,
-> Abide clients uses the [http](https://pub.dev/packages/http) package to
-> make requests to the backend API. You'll need to add that to your
-> pubspec for the following code to work:
-
-```dart
-import 'lib/calculator_service.gen.client.dart';
-
-var service = CalculatorServiceClient("http://localhost:9000");
-var add = await service.Add(AddRequest(A:5, B:2));
-var sub = await service.Sub(SubRequest(A:5, B:2));
-
-// Should print:
-// Add(5, 2) = 7
-// Sub(5, 2) = 3
-print('Add(5, 2) = ${add.Result}');
-print('Sub(5, 2) = ${sub.Result}');
-```
-
 ## Middleware
 
 You'll find that you frequently have work that you want to execute
@@ -1012,6 +1019,255 @@ lose all type information. We need the type info `&b` gives
 us in order to properly restore the original value, so Abide
 follows the idiom established by many
 of the decoders in the standard library.
+
+## Returning Raw File Data
+
+Let's say that you're writing ProfilePictureService. One of the operations
+you might want is the ability to return the raw JPG data for a user's profile
+picture. You do this the same way that you handle JSON-based responses; just
+implement some specialized interfaces so that Abide knows to treat it a little different:
+
+```go
+type ServeResponse struct {
+    file *io.File
+}
+
+// By implementing services.ContentGetter, the response tells Abide to
+// respond w/ raw data rather than JSON. Instead of turning the struct into
+// JSON, grab bytes from this reader and deliver them in the response.
+func (res ServeResponse) Content() io.ReadCloser {
+    return res.file
+}
+
+// By implementing services.ContentTypeGetter, this lets you dictate the
+// underlying HTTP Content-Type header. Without this Abide will have
+// nothing to go on and assume "application/octet-stream".
+func (res ServeResponse) ContentType() string {
+    return "image/jpeg"
+}
+
+// --- and now in your service ---
+
+func (svc *ProfilePictureService) Serve(ctx context.Context, req *ServeRequest) (*ServeResponse, error) {
+    // Ignore the fact that you probably don't store profile pictures on the
+    // hard drive of your service boxes...
+    f, err := os.Open("./pictures/" + req.UserID + ".jpg")
+    if err != nil {
+        return nil, fail.NotFound("no profile picture for user %s", req.UserID)
+    }
+    return &ServeResponse{file: f}, nil
+}
+```
+
+## HTTP Redirects
+
+It's fairly common to have a service call that does some work to locate a
+resource, authorize it, and then redirect to S3, CloudFront, or some other
+CDN to actually serve up the raw asset.
+
+With Abide, it's pretty simple. If your XxxResponse struct implements the
+`services.Redirector` interface then the API gateway will respond with a
+307-style redirect to the URL of your choice:
+
+```go
+// In video_service.go, this implements the services.Redirector interface.
+type DownloadResponse struct {
+    Bucket string
+    Key    string	
+}
+
+// Redirect returns the raw HTTP URL that the client should redirect to once it
+// receives this response. This is the implementation of services.Redirector.
+func (res DownloadResponse) Redirect() string {
+    return fmt.Sprintf("https://%s.s3.amazonaws.com/%s",
+        res.Bucket,
+        res.Key)
+}
+
+// ...
+
+// This triggers a 307-style redirect to the URL returned by response.Redirect()
+func (svc VideoServiceHandler) Download(ctx context.Context, req *DownloadRequest) (*DownloadResponse, error) {
+    file := svc.Repo.Get(req.FileID)
+    return &DownloadResponse{Bucket: file.Bucket, Key: file.Key}, nil
+}
+```
+
+## Running Multiple Services
+
+One of the core ideas behind Abide is that you should build your services in an isolated,
+decoupled manner regardless of how you intend to deploy them. Abide gives you the 
+flexibility to write your services once, and you can choose to either run them separately
+as micro/mini services. Alternately, you can take all of the services and run them in
+a single process as a monolith.
+
+### To Run Them As a Monolith
+
+```go
+// Initialize your raw service handlers just like you normally would.
+userService := userGen.UserServiceServer(userHandler)
+groupService := groupGen.GroupServiceServer(groupHandler)
+mailService := mailGen.MailServiceServer(mailHandler)
+orderService := orderGen.MailServiceServer(orderHandler)
+
+// All 4 services will listen on on port 9000 for incoming HTTP requests, and
+// they will all listen for each others' events and react apporpriately.
+server := services.NewServer(
+    services.Listen(apis.NewGateway(":9000")),
+    services.Listen(events.NewGateway()),
+    services.Register(userService, groupService, mailService, orderService),
+)
+server.Run()
+```
+
+### To Run Them Is Micro/Mini Services
+
+```go
+// In users/cmd/main.go
+userService := userGen.UserServiceServer(userHandler)
+server := services.NewServer(
+    services.Listen(apis.NewGateway(":9001")),
+    services.Listen(events.NewGateway(events.WithBroker(natsBroker))),
+    services.Register(userService),
+)
+server.Run()
+
+// In groups/cmd/main.go
+groupService := groupGen.GroupServiceServer(groupHandler)
+server := services.NewServer(
+    services.Listen(apis.NewGateway(":9002")),
+    services.Listen(events.NewGateway(events.WithBroker(natsBroker))),
+    services.Register(groupService),
+)
+server.Run()
+
+// And follow the pattern for the other 2 services...
+```
+
+This flexibility requires no fundamental change to the way you write your services - only how
+you start them up in `main()`. It's great when you're starting up a new project/business
+where you want to start small/cheap and validate your idea. Run it as a monolith in the
+beginning; then as you need to scale, you can peel off services and run them by themselves
+or have process A run two services and process B run the other two services.
+
+Ultimately you get to decouple your deployment from your software design which leads to
+better, more resilient code.
+
+> One small note about the micro/mini service example. The events your services
+> publish will need to cross process boundaries because they're not running together.
+> The might be separate process on the same machine or different machines entirely.
+> As a result, if you plan to use the `events` gateway, you'll need to use the NATS
+> broker since the default broker only communicates with services in the same process.
+
+## Go Generate Support
+
+If you prefer to stick to the standard Go toolchain for generating code, you can use
+`//go:generate` comments to hook the Abide code generator into your build process. 
+
+For example, this generates the server/gateway, mock service, Go client, JS client,
+and Flutter/Dart client just by marking up your service definition a bit:
+
+```go
+import (
+   ...
+)
+
+//go:generate abide server  $GOFILE
+//go:generate abide client  $GOFILE
+//go:generate abide client  $GOFILE --language=js
+//go:generate abide client  $GOFILE --language=flutter
+//go:generate abide client  $GOFILE --language=openapi
+//go:generate abide mock    $GOFILE
+
+type CalculatorService interface {
+    ...
+}
+```
+
+## Mocking Services
+
+Using mocks is a divisive topic, and I'm not here to tell you the right/wrong way to
+test your code. If you prefer mocks, Abide can generate helpful mock implementations
+of your services to use in your tests. Using a similar command that we used for 
+generating our server and clients, you can do the following:
+
+```bash
+abide mock calculator_service.go
+```
+
+That creates `gen/calculator_service.gen.mock.go` which you can use in your test
+suites like so:
+
+```go
+import (
+    "context"
+    "fmt"
+
+    "github.com/example/calc"
+    mocks "github.com/example/calc/gen"
+)
+
+func TestSomethingThatDependsOnAddFailure(t *testing.T) {
+    // You can program behaviors for Add(). If the test code calls Sub()
+    // it will panic since you didn't define a behavior for that operation.
+    svc := mocks.MockCalculatorService{
+        AddFunc: func(ctx context.Context, req *calc.AddRequest) (*calc.AddResponse, error) {
+            return nil, fmt.Errorf("barf...")
+        },	
+    }
+
+    // Feed your mock service to the thing you're testing
+    something := NewSomething(svc)
+    _, err := something.BlahBlah(100)
+    assertError(err)
+    ...
+
+    // You can also verify invocations on your service:
+    assertEquals(0, svc.Calls.Sub.Times)
+    assertEquals(5, svc.Calls.Add.Times)
+    assertEquals(1, svc.Calls.Add.TimesFor(calc.Request{A: 4, B: 2}))
+    assertEquals(2, svc.Calls.Add.TimesMatching(func(r calc.Request) bool {
+        return r.A > 2
+    }))
+}
+```
+
+## Generate OpenAPI/Swagger Documentation (Experimental)
+
+Definitely a work in progress, but in addition to generating your backend and
+frontend assets, Frodo can generate OpenAPI 3.0 YAML files to describe your API.
+It uses the name/type information from your Go code as well as the GoDoc comments
+that you (hopefully) write. Document your code in Go and you can get online API docs
+for free:
+
+```bash
+frodo client calculator_service.go --language=openapi
+  # or
+frodo client calculator_service.go --language=swagger
+```
+
+Now you can feed the file gen/calculator_service.gen.swagger.yaml to your favorite 
+Swagger tools. You can try it out by just pasting the output on
+https://editor.swagger.io.
+
+OpenAPI docs let you specify the current version of your service. You can specify
+that value by including the VERSION doc option on your service interface.
+
+```go
+// FooService is a magical service that does awesome things.
+//
+// VERSION 1.2.1
+type FooService interface {
+    // ...
+}
+```
+
+Now, when you generate your docs the version badge will display "1.2.1".
+
+Not gonna lie... this whole feature is still a work in progress. I've still
+got some issues to work out with nested request/response structs. It spits out enough
+good stuff that it should describe your services better than no documentation at all,
+though.
 
 ## FAQs
 

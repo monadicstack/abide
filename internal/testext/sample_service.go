@@ -14,6 +14,7 @@ import (
 //go:generate ../../out/abide client  $GOFILE
 //go:generate ../../out/abide client  $GOFILE --language=js
 //go:generate ../../out/abide client  $GOFILE --language=dart
+//go:generate ../../out/abide mock    $GOFILE
 
 // SampleService is a mix of different options, parameter setups, and responses so that we can
 // run integration tests using our code-generated clients. Each method is nothing special, but

@@ -12,7 +12,7 @@ import (
 func main() {
 	rootCmd := &cobra.Command{
 		Use:   "abide",
-		Short: "A code generator for Go-based (micro)services that creates RPC clients/gateways.",
+		Short: "A code generator for Go-based (micro)services that let you consume them in an RPC or event-based fashion.",
 	}
 	rootCmd.AddCommand(cli.GenerateServer{}.Command())
 	rootCmd.AddCommand(cli.GenerateClient{}.Command())
