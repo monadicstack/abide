@@ -41,3 +41,30 @@ func (suite *SlicesSuite) TestMap() {
 	})
 	r.Equal([]int{5, 7, 3}, actualInts)
 }
+
+func (suite *SlicesSuite) TestContains() {
+	r := suite.Require()
+
+	var nilSlice []string
+	r.False(slices.Contains(nilSlice, ""))
+
+	// Matches must be able to pass an exact == comparison.
+	r.False(slices.Contains([]string{}, ""))
+	r.False(slices.Contains([]string{}, "foo"))
+	r.False(slices.Contains([]string{"Foo"}, "foo"))
+	r.False(slices.Contains([]string{"goo"}, "foo"))
+	r.False(slices.Contains([]string{"f", "oo"}, "foo"))
+
+	// Doesn't matter where the value is in the slice.
+	r.True(slices.Contains([]string{"foo"}, "foo"))
+	r.True(slices.Contains([]string{"foo", "bar", "baz"}, "foo"))
+	r.True(slices.Contains([]string{"bar", "foo", "baz"}, "foo"))
+	r.True(slices.Contains([]string{"bar", "baz", "foo"}, "foo"))
+
+	// Multiple instances are okay
+	r.True(slices.Contains([]string{"foo", "baz", "foo"}, "foo"))
+
+	// Make sure we can handle multiple comparable types.
+	r.False(slices.Contains([]int{1, 2, 3}, 50))
+	r.True(slices.Contains([]int{1, 2, 3}, 2))
+}
