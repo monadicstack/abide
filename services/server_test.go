@@ -45,7 +45,7 @@ func (suite *ServerSuite) start() (*services.Server, *testext.Sequence, func()) 
 		services.Register(gen.SampleServiceServer(sampleService)),
 		services.Register(gen.OtherServiceServer(otherService)),
 	)
-	go server.Run()
+	go func() { _ = server.Run() }()
 
 	// Kinda crappy, but we need some time to make sure the server is up. Sometimes
 	// this goes so fast that the test case fires before the server is fully running.
@@ -100,7 +100,7 @@ func (suite *ServerSuite) streamContent(stream *services.StreamResponse) string 
 }
 
 func (suite *ServerSuite) assertInvoked(calls *testext.Sequence, expected []string) {
-	time.Sleep(25 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	suite.ElementsMatch(calls.Values(), expected)
 }
 
@@ -233,5 +233,31 @@ func (suite *ServerSuite) TestRPCWithEvents() {
 		"ListenerB:ABIDE",
 		"ListenerB:ListenerA:ABIDE", // Cascade when ListenerB fired after ListenerA fired
 		"ListenWell:ABIDE",
+	})
+}
+
+// Ensures that you can invoke a method which triggers the event gateway to run another method. Then,
+// when THAT method finishes, it triggers even more event-based methods. It ensures that we properly
+// support more complex event flows.
+func (suite *ServerSuite) TestEventChain() {
+	server, calls, shutdown := suite.start()
+	defer shutdown()
+
+	calls.Reset()
+	res, err := server.Invoke(context.Background(), "OtherService", "ChainOne", &testext.OtherRequest{Text: "Abide"})
+	suite.Require().NoError(err)
+	suite.Equal("ChainOne:Abide", suite.responseText(res))
+	suite.assertInvoked(calls, []string{
+		// Our initial call a few lines above.
+		"ChainOne:Abide",
+
+		// The first call that is triggered by the success of ChainOne. The failure one does run and append to
+		// the sequence, but it does NOT trigger ChainFailAfter.
+		"ChainTwo:ChainOne:Abide",
+		"ChainFail:ChainOne:Abide",
+
+		// When ChainTwo completes, these are invoked.
+		"ChainThree:ChainTwo:ChainOne:Abide",
+		"ChainFour:ChainTwo:ChainOne:Abide",
 	})
 }

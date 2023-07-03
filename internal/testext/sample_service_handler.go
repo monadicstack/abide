@@ -3,6 +3,7 @@ package testext
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -137,6 +138,7 @@ func (s SampleServiceHandler) Sleep(_ context.Context, req *SampleRequest) (*Sam
 }
 
 func (s SampleServiceHandler) TriggerUpperCase(_ context.Context, req *SampleRequest) (*SampleResponse, error) {
+	fmt.Println("[INVOKING] SampleService.TriggerUpperCase: " + req.Text)
 	s.Sequence.Append("TriggerUpperCase:" + req.Text)
 	return &SampleResponse{Text: strings.ToUpper(req.Text)}, nil
 }
@@ -159,4 +161,9 @@ func (s SampleServiceHandler) ListenerA(_ context.Context, req *SampleRequest) (
 func (s SampleServiceHandler) ListenerB(_ context.Context, req *SampleRequest) (*SampleResponse, error) {
 	s.Sequence.Append("ListenerB:" + req.Text)
 	return &SampleResponse{Text: "ListenerB:" + req.Text}, nil
+}
+
+func (s SampleServiceHandler) SecureWithRoles(ctx context.Context, req *SampleSecurityRequest) (*SampleSecurityResponse, error) {
+	s.Sequence.Append("SecureWithRoles:" + req.ID)
+	return &SampleSecurityResponse{Roles: metadata.Route(ctx).Roles}, nil
 }

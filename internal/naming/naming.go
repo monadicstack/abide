@@ -156,3 +156,75 @@ func DispositionFileName(contentDisposition string) string {
 	fileName = strings.ReplaceAll(fileName, `\"`, `"`)
 	return fileName
 }
+
+// IsPathVariable returns true if the given path segment value looks like it's a variable.
+//
+//	IsPathVariable("user") -> false
+//	IsPathVariable(":user") -> false
+//	IsPathVariable("{ID}") -> true
+//	IsPathVariable("{Group.Organization.ID}") -> true
+func IsPathVariable(token string) bool {
+	// The length check ensures we don't allow "{}" since there's no variable in there.
+	return len(token) > 2 && strings.HasPrefix(token, "{") && strings.HasSuffix(token, "}")
+}
+
+// PathVariableName returns the raw variable name of the path variable if it actually is a variable (e.g. "{Foo.ID"}"
+// becomes "Foo.ID). If it's not a path variable, then this return "" (e.g "User" -> "").
+func PathVariableName(pathSegment string) string {
+	if IsPathVariable(pathSegment) {
+		return pathSegment[1 : len(pathSegment)-1]
+	}
+	return ""
+}
+
+// TokenizePath follows our standard segment/variable naming conventions and splits a path such as "foo/{bar/baz}/goo"
+// or "foo.{bar.baz}.goo" into the slice ["foo", "{bar.baz}", "goo"].
+func TokenizePath(path string, delim rune) []string {
+	// Allocate a slice w/ 1 more than the number of delimiters. This means that for a path like "foo/bar/baz",
+	// there are 2 slashes; we'll allocate a slice w/ capacity 3. That's perfect for most cases, but you might
+	// do a little over-allocation when parsing roles like "group.{User.Group.ID}.write" which would allocate 5
+	// elements even though in the end we'll only need 3. That's okay.
+	results := make([]string, 0, strings.Count(path, string(delim))+1)
+
+	// We track whether we're parsing a variable or not so in instances like "foo.{bar.baz}.goo", we know to
+	// ignore the "." in "{bar.baz}" and treat that whole thing like one token.
+	variableDepth := 0
+	currentToken := strings.Builder{}
+
+	for _, char := range path {
+		switch {
+		// We're finished parsing a path variable. Aside from closing out the token, it means that we will
+		// stop ignoring instances of the delim and treat them like the separators they are again.
+		case variableDepth > 0 && char == '}':
+			currentToken.WriteRune(char)
+			variableDepth--
+
+		// For some dumb-shit reason you have a path like "foo/{bar{baz}goo}/blah". This notices that until you
+		// encounter the final closing '}', you're still technically parsing the variable. Increase the depth so
+		// that when we hit the first closing brace, we're still parsing.
+		case variableDepth > 0 && char == '{':
+			currentToken.WriteRune(char)
+			variableDepth++
+
+		case variableDepth > 0:
+			currentToken.WriteRune(char)
+
+		case char == '{':
+			currentToken.WriteRune(char)
+			variableDepth++
+
+		case char == delim:
+			results = append(results, currentToken.String())
+			currentToken.Reset()
+
+		default:
+			currentToken.WriteRune(char)
+		}
+	}
+
+	// Make sure to close out the last token that we were in the middle of ingesting.
+	if currentToken.Len() == 0 {
+		return results
+	}
+	return append(results, currentToken.String())
+}

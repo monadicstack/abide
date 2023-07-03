@@ -6,7 +6,6 @@ import (
 	"go/token"
 	"go/types"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -132,6 +131,9 @@ type ServiceFunctionDeclaration struct {
 	// contains things like the HTTP method/path to register w/ the API gateway or the name of the topic/key
 	// to subscribe to in an event gateway.
 	Routes GatewayRoutes
+	// Roles defines the role-based security identifiers that a user/principal must have in order to access
+	// this endpoint. These can be exact values like "admin.write" or parameterized like "group.{Group.ID}.write".
+	Roles []string
 	// Documentation are all of the comments documenting this operation.
 	Documentation DocumentationLines
 	// Service represents the interface/service that this function belongs to.
@@ -432,7 +434,7 @@ type GatewayRoute struct {
 	Function *ServiceFunctionDeclaration
 	// GatewayType is a descriptor for the type of gateway this route should register with (e.g. "API" or "EVENT").
 	GatewayType string
-	// Method indicates if the RPC gateway should use a GET, POST, etc when exposing this operation via HTTP.
+	// Method indicates if the RPC gateway should use a GET, POST, etc. when exposing this operation via HTTP.
 	Method string
 	// Path defines the URL pattern to provide to the gateway's router/mux to access this operation.
 	Path string
@@ -440,15 +442,23 @@ type GatewayRoute struct {
 	Status int
 }
 
-// QualifiedPath returns the route's path with the service's PathPrefix prepended to it.
+// QualifiedPath returns the route's path with the service's PathPrefix prepended to it. This includes a leading "/"
+// so that all clients/servers can expect that to be in place (so we don't need to re-normalize this over and over).
 func (route *GatewayRoute) QualifiedPath() string {
-	switch route.GatewayType {
-	case "API":
-		path, _ := url.JoinPath(route.Function.Service.Gateway.PathPrefix, route.Path)
+	prefix := strings.Trim(route.Function.Service.Gateway.PathPrefix, "/")
+	path := strings.Trim(route.Path, "/")
+
+	// The pub/sub gateway doesn't care about your HTTP remapping of paths. The event keys are locked to the name
+	// service, dot, name of the function.
+	if route.GatewayType == "EVENTS" {
 		return path
-	default:
-		return route.Path
 	}
+
+	// Only prepend the HTTP path prefix (e.g. "v2") if there's one defined on the service in the first place.
+	if prefix != "" {
+		return "/" + prefix + "/" + path
+	}
+	return "/" + path
 }
 
 // MethodMatches returns true when the route's method matches at least one of 'these' options.
@@ -483,16 +493,16 @@ func (opts GatewayFunctionOptions) SupportsBody() bool {
 
 // PathParameters looks at all of the ":xxx" path parameters in HTTPPath and returns the fields on
 // the request struct that will be bound by those values at runtime. For instance, if the path
-// was "/user/:userID/address/:addressID", this will return a 2-element slice containing the request's
+// was "/user/{userID}/address/{addressID}", this will return a 2-element slice containing the request's
 // UserID and AddressID fields.
 func (opts GatewayFunctionOptions) PathParameters() GatewayParameters {
 	var results GatewayParameters
 	for _, segment := range strings.Split(opts.Path, "/") {
-		if !strings.HasPrefix(segment, ":") {
+		if !strings.HasPrefix(segment, "{") && !strings.HasSuffix(segment, "}") {
 			continue
 		}
 
-		paramName := segment[1:]
+		paramName := segment[1 : len(segment)-1]
 		field := opts.Function.Request.Fields.ByBindingName(paramName)
 		if field == nil {
 			continue
@@ -561,7 +571,7 @@ func (params GatewayParameters) NotEmpty() bool {
 
 // GatewayParameter defines how a path/query parameter will be bound to a field in your request struct.
 type GatewayParameter struct {
-	// Name is the identifier of the path param (e.g "id" in "/user/:id") or query string value that
+	// Name is the identifier of the path param (e.g "id" in "/user/{id}") or query string value that
 	// will be bound to the Field.
 	Name string
 	// Field indicates which model attribute will be populated when this parameter goes

@@ -15,6 +15,7 @@ import (
 
 	"github.com/monadicstack/abide/codec"
 	"github.com/monadicstack/abide/fail"
+	"github.com/monadicstack/abide/internal/naming"
 	"github.com/monadicstack/abide/internal/quiet"
 	"github.com/monadicstack/abide/services"
 )
@@ -34,11 +35,12 @@ func NewClient(name string, addr string, options ...ClientOption) Client {
 	}
 
 	defaultTimeout := 30 * time.Second
+	dialer := &net.Dialer{Timeout: defaultTimeout}
 	client := Client{
 		HTTP: &http.Client{
 			Timeout: defaultTimeout,
 			Transport: &http.Transport{
-				DialContext:         (&net.Dialer{Timeout: defaultTimeout}).DialContext,
+				DialContext:         dialer.DialContext,
 				TLSHandshakeTimeout: defaultTimeout,
 			},
 		},
@@ -91,7 +93,7 @@ type Client struct {
 // You should NOT call this yourself. Instead, you should stick to the strongly typed, code-generated
 // service functions on your client.
 func (c Client) Invoke(ctx context.Context, method string, path string, serviceRequest any, serviceResponse any) error {
-	// Step 1: Fill in the URL path and query string w/ fields from the request. (e.g. /user/:id -> /user/abc)
+	// Step 1: Fill in the URL path and query string w/ fields from the request. (e.g. /user/{id} -> /user/abc)
 	// If this is a GET/DELETE/etc. that doesn't support bodies, this will include a query string
 	// with the remaining service request values.
 	address := c.buildURL(method, path, serviceRequest)
@@ -241,26 +243,25 @@ func (c Client) createRequestBody(method string, serviceRequest any) (io.Reader,
 func (c Client) buildURL(method string, path string, serviceRequest any) string {
 	attributes := c.codecs.DefaultValueEncoder().EncodeValues(serviceRequest)
 
-	path = strings.TrimPrefix(path, "/")
-	path = strings.TrimSuffix(path, "/")
-	pathSegments := strings.Split(path, "/")
+	path = strings.Trim(path, "/")
+	pathSegments := naming.TokenizePath(path, '/')
 
 	// Using the mapping of field names to request values (attributes), fill in the path
 	// pattern with real value request values.
 	//
-	// Example: "/user/:UserID/message/:ID" --> "/user/1234/message/5678"
+	// Example: "/user/{UserID}/message/{ID}" --> "/user/1234/message/5678"
 	for i, pathSegment := range pathSegments {
-		// Leave fixed segments alone (e.g. "user" in "/user/:id/messages")
-		if !strings.HasPrefix(pathSegment, ":") {
+		// Leave fixed segments alone (e.g. "user" in "/user/{id}/messages", but not "{id}")
+		if !naming.IsPathVariable(pathSegment) {
 			continue
 		}
 
 		// Replace path param variables w/ the equivalent value from the service request. Make
 		// sure to path escape the values. For instance if we're filling in values for the
-		// pattern "/content-type/:ContentType" and the value for ":ContentType" is "image/png"
+		// pattern "/content-type/{ContentType}" and the value for "{ContentType}" is "image/png"
 		// we want the final URL to be "/content-type/image%2Fpng" and not "/content-type/image/png"
 		// because you'd be sneaking in more path segments.
-		paramName := pathSegment[1:]
+		paramName := pathSegment[1 : len(pathSegment)-1]
 		pathSegments[i] = url.PathEscape(attributes.Get(paramName))
 
 		// Remove the attribute, so it doesn't also get encoded in the query string, also.
@@ -277,6 +278,11 @@ func (c Client) buildURL(method string, path string, serviceRequest any) string 
 		// We're doing a GET/DELETE/etc, so all request values must come via query string args.
 		return address + "?" + attributes.Encode()
 	}
+}
+
+// fixedSegment returns true if the given URL path segment is not wrapped in "{}" indicating that it's a variable.
+func (c Client) fixedSegment(segment string) bool {
+	return !strings.HasPrefix(segment, "{") || !strings.HasSuffix(segment, "}")
 }
 
 // WithMiddleware sets the chain of HTTP request/response handlers you want to invoke

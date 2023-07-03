@@ -40,12 +40,20 @@ type EndpointRoute struct {
 	// being handled due to an API call or some sort of event handler.
 	Type string
 	// Method describes some sort of action/verb that describes this route. For API endpoints
-	// it is the HTTP method (e.g. GET, PUT, POST, etc). For events it is "ON", and so forth.
+	// it is the HTTP method (e.g. GET, PUT, POST, etc). For events, it is "ON", and so forth.
 	Method string
 	// Path describes the actual unique routing path that the gateway should use to ensure
 	// that requests get to this endpoint. For API endpoints, it's the request path
-	// like "/user/:ID" and for event endpoints, it's the subscription key like "FooService.Save".
+	// like "/user/{ID}" and for event endpoints, it's the subscription key like "FooService.Save".
 	Path string
+	// Roles are used for role-based security where you can say that this endpoint requires the user/caller
+	// to have either "admin.write" or "group.write" privileges. When defining your services, you can parameterize
+	// your roles such as "group.{ID}.write", but the ones stored in this slice should have already been
+	// resolved with the appropriate runtime values (e.g. "group.123.write").
+	//
+	// Friendly reminder that these are the roles you want the security layer to look for - it's
+	// not necessarily what the caller actually has!
+	Roles []string
 }
 
 // QualifiedName returns the fully-qualified name/identifier of this service operation. It

@@ -26,7 +26,6 @@ func NewGateway(address string, options ...GatewayOption) *Gateway {
 		router:     router,
 		codecs:     codec.New(),
 		middleware: HTTPMiddlewareFuncs{},
-		pathPrefix: "",
 		endpoints:  map[httpRoute]services.Endpoint{},
 		server:     &http.Server{Addr: address, Handler: router},
 		tlsCert:    "",
@@ -48,7 +47,6 @@ func NewGateway(address string, options ...GatewayOption) *Gateway {
 type Gateway struct {
 	codecs     codec.Registry
 	middleware HTTPMiddlewareFuncs
-	pathPrefix string
 	endpoints  map[httpRoute]services.Endpoint
 	router     *httptreemux.TreeMux
 	server     *http.Server
@@ -99,7 +97,7 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 		return
 	}
 
-	// The user specified a path like "GET /user/:id" in their code, so when they fetch the
+	// The user specified a path like "GET /user/{id}" in their code, so when they fetch the
 	// endpoint data later, that's what we want it to look like, so we'll leave the endpoint's
 	// Path attribute alone. But... the router needs the full path which includes the optional
 	// prefix (e.g. "/v2"). So we'll use the full path for routing and lookups (transparent to
@@ -108,7 +106,7 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 	// And yes, we're ignoring the error, but that only happens if JoinPath can't parse the
 	// first parameter as a URL. Since that's hardcoded to something that is guaranteed to parse
 	// properly, we're good.
-	path, _ := url.JoinPath("/", gw.pathPrefix, route.Path)
+	path := gw.normalizePath(route)
 	method := strings.ToUpper(route.Method)
 
 	// We want to try and make sure that our bookkeeping tasks like request ids, metadata,
@@ -138,6 +136,23 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 	gw.registerOptions(path)
 }
 
+// normalizePath takes all disparate pathing information at the service and endpoint levels and returns the
+// actual path that we will feed to the underlying HTTP router. The steps include:
+//
+// - Converting /user/{User.ID} brace variable to  /user/:User.ID colon format.
+func (gw *Gateway) normalizePath(route services.EndpointRoute) string {
+	// The HTTP router expects variables to be in colon-format (e.g. ":User.ID"). We allow you to use
+	// brace format (e.g. "{User.ID}"), so convert variables to the router's format.
+	pathSegments := strings.Split(route.Path, "/")
+	for i, segment := range pathSegments {
+		if strings.HasPrefix(segment, "{") && strings.HasSuffix(segment, "}") {
+			pathSegments[i] = ":" + segment[1:len(segment)-1]
+		}
+	}
+
+	return strings.Join(pathSegments, "/")
+}
+
 func (gw *Gateway) registerOptions(path string) {
 	// I realize that recovering from panics makes the baby jesus cry. This is to handle the case where you
 	// register multiple service functions with the same path, but different methods. For instance:
@@ -150,8 +165,8 @@ func (gw *Gateway) registerOptions(path string) {
 	// gateway's already-registered endpoint paths for a match (and thus skip), but there's a case that's
 	// hard to detect:
 	//
-	//   GET  /foo/:bar
-	//   POST /foo/:goo
+	//   GET  /foo/{bar}
+	//   POST /foo/{goo}
 	//
 	// A dumb string-based check would see those as unique paths, but the router will still barf because they
 	// are functionally equivalent.
@@ -254,7 +269,7 @@ func (gw *Gateway) notFoundHandler(w http.ResponseWriter, req *http.Request) {
 type httpRoute struct {
 	// Method is the HTTP method used by this route (e.g. "GET", "POST", etc.).
 	Method string
-	// Path is the path pattern used by this route (e.g. "/user/:ID")
+	// Path is the path pattern used by this route (e.g. "/user/{ID}")
 	Path string
 }
 

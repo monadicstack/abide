@@ -7,8 +7,8 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -258,7 +258,7 @@ func ParsePackageInfo(ctx *Context) (input *PackageDeclaration, output *PackageD
 	return input, output, nil
 }
 
-// ParseModuleInfo cherry picks a tiny bit of info from your "go.mod" file that we use
+// ParseModuleInfo cherry-picks a tiny bit of info from your "go.mod" file that we use
 // in processing your services.
 func ParseModuleInfo(ctx *Context) (*ModuleDeclaration, error) {
 	inputFilePath, err := filepath.Abs(ctx.Path)
@@ -266,13 +266,13 @@ func ParseModuleInfo(ctx *Context) (*ModuleDeclaration, error) {
 		return nil, fmt.Errorf("unable to determine absolute path: %w", err)
 	}
 
-	// Look in the input file's directory (an all of its parents/ancestors) for the "go.mod" file.
+	// Look in the input file's directory (and all of its parents/ancestors) for the "go.mod" file.
 	goModPath, err := FindGoDotMod(filepath.Dir(inputFilePath))
 	if err != nil {
 		return nil, err
 	}
-	// Read/parse the "go.mod" file so we can extract the module/package info we need.
-	goModData, err := ioutil.ReadFile(goModPath)
+	// Read/parse the "go.mod" file, so we can extract the module/package info we need.
+	goModData, err := os.ReadFile(goModPath)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +296,7 @@ func FindGoDotMod(dirName string) (string, error) {
 		return "", ErrMissingGoMod
 	}
 
-	files, err := ioutil.ReadDir(dirName)
+	files, err := os.ReadDir(dirName)
 	if err != nil {
 		return "", fmt.Errorf("unable to find 'go.mod': %w", err)
 	}
@@ -785,7 +785,7 @@ func ApplyFunctionDocumentation(ctx *Context, function *ServiceFunctionDeclarati
 			apiRoute.Method = http.MethodHead
 			apiRoute.Path = normalizePath(line[5:])
 		case strings.HasPrefix(line, "HTTP OMIT"):
-			// Yes, if you were silly enough to also have "GET /user/:ID" or something
+			// Yes, if you were silly enough to also have "GET /user/{ID}" or something
 			// like that, the "GET " option will still fire, but it will just update the
 			// apiRoute variable harmlessly since it's no longer in the routes list.
 			function.Routes = slices.Remove(function.Routes, &apiRoute)
@@ -802,6 +802,14 @@ func ApplyFunctionDocumentation(ctx *Context, function *ServiceFunctionDeclarati
 				Method:      "ON",
 				Path:        strings.TrimSpace(line[3:]),
 			})
+
+		//
+		// General purpose options (like for security/metadata)
+		//
+		case strings.HasPrefix(line, "ROLES "):
+			roles := strings.Split(strings.TrimSpace(line[6:]), ",")
+			function.Roles = slices.Map(roles, strings.TrimSpace)
+
 		default:
 			function.Documentation = append(function.Documentation, line)
 		}

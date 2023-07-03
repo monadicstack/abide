@@ -11,3 +11,20 @@ func Remove[T comparable](slice []T, value T) []T {
 	}
 	return slice
 }
+
+// Map performs a functional Map operation where you convert a slice of type T to a slice of type U by
+// running every element through a mapping function.
+func Map[T any, U any](slice []T, mapper func(T) U) []U {
+	if slice == nil {
+		return nil
+	}
+	if mapper == nil {
+		return nil
+	}
+
+	output := make([]U, len(slice))
+	for i, item := range slice {
+		output[i] = mapper(item)
+	}
+	return output
+}

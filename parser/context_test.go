@@ -422,14 +422,14 @@ func (suite *ContextSuite) TestGatewayFunctionOptions_PathParameters() {
 	params = options.PathParameters()
 	suite.Require().Len(params, 0)
 
-	options.Path = ":id"
+	options.Path = "{id}"
 	params = options.PathParameters()
 	suite.Require().Len(params, 1)
 	suite.Require().Equal("id", params[0].Name)
 	suite.Require().Equal("ID", params[0].Field.Name)
 
-	// Case insensitive matches
-	options.Path = "/foo/:id/baz/:FIRST_name"
+	// Case-insensitive matches
+	options.Path = "/foo/{id}/baz/{FIRST_name}"
 	params = options.PathParameters()
 	suite.Require().Len(params, 2)
 	suite.Require().Equal("id", params[0].Name)
@@ -438,11 +438,11 @@ func (suite *ContextSuite) TestGatewayFunctionOptions_PathParameters() {
 	suite.Require().Equal("FirstName", params[1].Field.Name)
 
 	// We don't include path params if there's no field on that request model
-	options.Path = "/foo/:bar/baz"
+	options.Path = "/foo/{bar}/baz"
 	params = options.PathParameters()
 	suite.Require().Len(params, 0)
 
-	options.Path = "/foo/:id/bar/:first_name/baz/:middle_name"
+	options.Path = "/foo/{id}/bar/{first_name}/baz/{middle_name}"
 	params = options.PathParameters()
 	suite.Require().Len(params, 2)
 	suite.Require().Equal("id", params[0].Name)
@@ -487,7 +487,7 @@ func (suite *ContextSuite) TestGatewayFunctionOptions_QueryParameters() {
 	checkParam(params, 2, "first_name", "FirstName")
 
 	// Having unrelated path params shouldn't take away from the available fields.
-	options.Path = "/foo/:bar/baz"
+	options.Path = "/foo/{bar}/baz"
 	params = options.QueryParameters()
 	suite.Require().Len(params, 3)
 	checkParam(params, 0, "ID", "ID")
@@ -495,18 +495,18 @@ func (suite *ContextSuite) TestGatewayFunctionOptions_QueryParameters() {
 	checkParam(params, 2, "first_name", "FirstName")
 
 	// If it's in the path, it should not be a query param.
-	options.Path = "/foo/:id/baz"
+	options.Path = "/foo/{id}/baz"
 	params = options.QueryParameters()
 	suite.Require().Len(params, 2)
 	checkParam(params, 0, "LastName", "LastName")
 	checkParam(params, 1, "first_name", "FirstName")
 
-	options.Path = "/foo/:id/baz/:first_name"
+	options.Path = "/foo/{id}/baz/{first_name}"
 	params = options.QueryParameters()
 	suite.Require().Len(params, 1)
 	checkParam(params, 0, "LastName", "LastName")
 
-	options.Path = "/foo/:id/baz/:first_name/:LastName"
+	options.Path = "/foo/{id}/baz/{first_name}/{LastName}"
 	params = options.QueryParameters()
 	suite.Require().Len(params, 0)
 }

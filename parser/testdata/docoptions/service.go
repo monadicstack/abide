@@ -27,7 +27,7 @@ type LebowskiService interface {
 	// Dude abides.
 	//
 	//
-	// GET /dude/:id/
+	// GET /dude/{id}/
 	// HTTP 202
 	Dude(context.Context, *Request) (*Response, error)
 	Walter(context.Context, *Request) (*Response, error)
@@ -37,17 +37,17 @@ type LebowskiService interface {
 	//
 	Donny(context.Context, *Request) (*Response, error)
 	// HTTP 201
-	// POST /dude/:id/child
+	// POST /dude/{id}/child
 	Maude(context.Context, *Request) (*Response, error)
 	// PUT       /dude/jail
 	Jackie(context.Context, *Request) (*Response, error)
 	// Sometimes you eat the bar.
 	//
-	// PATCH dude/:id
+	// PATCH dude/{id}
 	// Sometimes the bar eats you.
 	Stranger(context.Context, *Request) (*Response, error)
 	// RemoveToe attempts to extort $1 million.
-	// DELETE /nihilist/:id/toe
+	// DELETE /nihilist/{id}/toe
 	RemoveToe(context.Context, *Request) (*Response, error)
 	//     HEAD /ties/room/together
 	// * HTTP 202

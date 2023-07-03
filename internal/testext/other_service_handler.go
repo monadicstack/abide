@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/monadicstack/abide/fail"
 )
 
 type OtherServiceHandler struct {
@@ -29,4 +31,34 @@ func (svc OtherServiceHandler) RPCExample(ctx context.Context, req *OtherRequest
 func (svc OtherServiceHandler) ListenWell(_ context.Context, req *OtherRequest) (*OtherResponse, error) {
 	svc.Sequence.Append("ListenWell:" + req.Text)
 	return &OtherResponse{Text: "ListenWell:" + req.Text}, nil
+}
+
+func (svc OtherServiceHandler) ChainOne(_ context.Context, req *OtherRequest) (*OtherResponse, error) {
+	svc.Sequence.Append("ChainOne:" + req.Text)
+	return &OtherResponse{Text: "ChainOne:" + req.Text}, nil
+}
+
+func (svc OtherServiceHandler) ChainTwo(_ context.Context, req *OtherRequest) (*OtherResponse, error) {
+	svc.Sequence.Append("ChainTwo:" + req.Text)
+	return &OtherResponse{Text: "ChainTwo:" + req.Text}, nil
+}
+
+func (svc OtherServiceHandler) ChainThree(_ context.Context, req *OtherRequest) (*OtherResponse, error) {
+	svc.Sequence.Append("ChainThree:" + req.Text)
+	return &OtherResponse{Text: "ChainThree:" + req.Text}, nil
+}
+
+func (svc OtherServiceHandler) ChainFour(_ context.Context, req *OtherRequest) (*OtherResponse, error) {
+	svc.Sequence.Append("ChainFour:" + req.Text)
+	return &OtherResponse{Text: "ChainFour:" + req.Text}, nil
+}
+
+func (svc OtherServiceHandler) ChainFail(_ context.Context, req *OtherRequest) (*OtherResponse, error) {
+	svc.Sequence.Append("ChainFail:" + req.Text)
+	return nil, fail.Unexpected("no soup for you")
+}
+
+func (svc OtherServiceHandler) ChainFailAfter(_ context.Context, req *OtherRequest) (*OtherResponse, error) {
+	svc.Sequence.Append("ChainFailAfter:" + req.Text)
+	return &OtherResponse{Text: "ChainFailAfter:" + req.Text}, nil
 }

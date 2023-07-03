@@ -171,7 +171,7 @@ func (server *Server) registerEndpoint(endpoint Endpoint) {
 	// handlers have everything that the framework offers at their disposal. Additionally,
 	// the recovery middleware should always be the outermost handler to clean up
 	// after any crap that happens anywhere else in the pipeline.
-	endpoint.Handler = MiddlewareFuncs{recoverMiddleware()}.
+	endpoint.Handler = MiddlewareFuncs{recoverMiddleware(), rolesMiddleware(endpoint)}.
 		Append(server.gatewayMiddleware...).
 		Then(endpoint.Handler)
 
