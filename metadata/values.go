@@ -128,7 +128,7 @@ func WithValue(ctx context.Context, key string, value any) context.Context {
 	}
 
 	entries, ok := ctx.Value(contextKeyValues{}).(values)
-	if !ok {
+	if !ok || entries == nil {
 		entries = values{}
 		ctx = context.WithValue(ctx, contextKeyValues{}, entries)
 	}
