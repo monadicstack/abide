@@ -143,7 +143,7 @@ func (gw *Gateway) toStreamHandler(endpoint services.Endpoint, route services.En
 			Type:        gw.Type().String(),
 			Method:      route.Method,
 			Path:        route.Path,
-			Status:      route.Status,
+			Status:      200, // we don't have a doc option for setting this on event routes, so use sane default.
 		})
 
 		if _, err := endpoint.Handler(ctx, serviceRequest); err != nil {
