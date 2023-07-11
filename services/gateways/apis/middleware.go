@@ -20,7 +20,7 @@ type HTTPMiddlewareFuncs []HTTPMiddlewareFunc
 //
 //	middlewareFuncs := HTTPMiddlewareFuncs{A, B, C}
 //	middlewareFuncs = middlewareFuncs.Append(D, E, F)
-//	// middlewareFuncs ==> {A, B, C, D, E, F}
+//	middlewareFuncs ==> {A, B, C, D, E, F}
 func (funcs HTTPMiddlewareFuncs) Append(functions ...HTTPMiddlewareFunc) HTTPMiddlewareFuncs {
 	return append(funcs, functions...)
 }
@@ -79,6 +79,7 @@ func restoreMetadataEndpoint(endpoint services.Endpoint, route services.Endpoint
 			Type:        route.GatewayType.String(),
 			Method:      route.Method,
 			Path:        route.Path,
+			Status:      route.Status,
 		})
 		next(w, req.WithContext(ctx))
 	}

@@ -44,6 +44,7 @@ func (suite *RouteSuite) TestWithRoute() {
 		Type:        "3",
 		Method:      "4",
 		Path:        "5",
+		Status:      204,
 	}
 	ctx = metadata.WithRoute(ctx, route)
 	suite.Equal(route, metadata.Route(ctx))

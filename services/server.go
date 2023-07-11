@@ -194,6 +194,7 @@ func (server *Server) Invoke(ctx context.Context, serviceName string, methodName
 		ctx = metadata.WithRoute(ctx, metadata.EndpointRoute{
 			ServiceName: serviceName,
 			Name:        methodName,
+			Status:      200,
 		})
 		return endpoint.Handler(ctx, req)
 	}
