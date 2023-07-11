@@ -78,7 +78,7 @@ func restoreMetadataEndpoint(endpoint services.Endpoint, route services.Endpoint
 			Name:        endpoint.Name,
 			Type:        route.GatewayType.String(),
 			Method:      route.Method,
-			Path:        route.Path,
+			Path:        req.URL.Path, // should be the resolved path (e.g. "/user/{ID}" --> "/user/12345")
 			Status:      route.Status,
 		})
 		next(w, req.WithContext(ctx))

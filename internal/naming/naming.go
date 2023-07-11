@@ -177,6 +177,21 @@ func PathVariableName(pathSegment string) string {
 	return ""
 }
 
+// ResolvePath accepts a path that potentially includes path variables (e.g. "{ID}) and uses the 'variableFunc' to
+// replace those tokens in the path w/ some runtime value.
+//
+//	ResolvePath("foo/BAR", '/', strings.ToLower) --> "foo/BAR")
+//	ResolvePath("foo/{BAR}", '/', strings.ToLower) --> "foo/bar")
+func ResolvePath(path string, delim rune, variableFunc func(string) string) string {
+	segments := TokenizePath(path, '.')
+	for i, segment := range segments {
+		if pathVar := PathVariableName(segment); pathVar != "" {
+			segments[i] = variableFunc(pathVar)
+		}
+	}
+	return strings.Join(segments, string(delim))
+}
+
 // TokenizePath follows our standard segment/variable naming conventions and splits a path such as "foo/{bar/baz}/goo"
 // or "foo.{bar.baz}.goo" into the slice ["foo", "{bar.baz}", "goo"].
 func TokenizePath(path string, delim rune) []string {
