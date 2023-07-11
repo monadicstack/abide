@@ -61,6 +61,24 @@ type ContentRangeSetter interface {
 	SetContentRange(start int, end int, size int)
 }
 
+// StreamRequest implements all of the ContentXxx and SetContentXxx methods that we support and look
+// at when we look at streaming/upload style requests.
+//
+//	type FileUploadRequest struct {
+//		services.StreamRequest
+//	}
+//
+//	func (res *ImageDownloadResponse) Init(file os.File, info fs.FileInfo) {
+//		res.SetContent(file)
+//		res.SetContentType("image/png")
+//		res.SetContentLength(info.Size())
+//	}
+type StreamRequest struct {
+	content       io.ReadCloser
+	contentType   string
+	contentLength int
+}
+
 // StreamResponse implements all of the ContentXxx and SetContentXxx methods that we support. You
 // can embed one of these structs in your response struct to automatically gain the ability to
 // respond with raw data streams rather than auto-encoding.

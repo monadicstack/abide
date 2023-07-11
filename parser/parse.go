@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/monadicstack/abide/fail"
 	"github.com/monadicstack/abide/internal/implements"
 	"github.com/monadicstack/abide/internal/naming"
 	"github.com/monadicstack/abide/internal/slices"
@@ -52,6 +53,9 @@ var ErrTypeNotTwoParams = fmt.Errorf("must have two params")
 
 // ErrTypeNotTwoReturns is the error for when your function signature doesn't return two values.
 var ErrTypeNotTwoReturns = fmt.Errorf("must have two return values")
+
+// InvalidType is the type instance used by the AST parser to indicate types that the parser couldn't resolve.
+var InvalidType = types.Typ[0]
 
 // ParseFile parses a source code file containing a service interface declaration as well as the
 // structs for the request/response inputs and outputs. It will aggregate all of the services/ops/models
@@ -124,16 +128,20 @@ func ParseTypes(ctx *Context) (*packages.Package, TypeRegistry, error) {
 	// our entire type registry of every single type that this service requires.
 	for _, scopeKey := range targetScope.Names() {
 		t := targetScope.Lookup(scopeKey).Type()
-		typeDeclaration := registerType(ctx, registry, t)
+		typeDeclaration, err := registerType(ctx, registry, t)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		ApplyTypeDocumentation(ctx, typeDeclaration)
 	}
 	return targetPackage, registry.WithoutInvalid(), nil
 }
 
-func registerType(ctx *Context, registry TypeRegistry, t types.Type) *TypeDeclaration {
+func registerType(ctx *Context, registry TypeRegistry, t types.Type) (*TypeDeclaration, error) {
 	// We've already added this type to the registry, so avoid circular recursion.
 	if entry, ok := registry.Lookup(t); ok {
-		return entry
+		return entry, nil
 	}
 
 	// Add it to the registry before iterating any struct fields so that if one of its fields is this type, we
@@ -145,27 +153,50 @@ func registerType(ctx *Context, registry TypeRegistry, t types.Type) *TypeDeclar
 	name = naming.CleanPrefix(name)
 	typeDeclaration := registry.Register(&TypeDeclaration{Name: name, Type: t})
 
-	registerTypeEntry(ctx, registry, typeDeclaration, t)
-	return ApplyTypeDocumentation(ctx, typeDeclaration)
+	if err := registerTypeEntry(ctx, registry, typeDeclaration, t); err != nil {
+		return typeDeclaration, err
+	}
+	return ApplyTypeDocumentation(ctx, typeDeclaration), nil
 }
 
-func registerTypeEntry(ctx *Context, registry TypeRegistry, entry *TypeDeclaration, t types.Type) {
+func registerTypeEntry(ctx *Context, registry TypeRegistry, entry *TypeDeclaration, t types.Type) error {
+	var err error
+
 	switch tt := t.(type) {
 	case *types.Pointer:
 		// We track "pointer-ness" on fields whose type is a pointer, not on the type itself, so just apply
 		// the pointer type's information to the core type entry.
-		registerTypeEntry(ctx, registry, entry, tt.Elem())
+		return registerTypeEntry(ctx, registry, entry, tt.Elem())
 
 	case *types.Struct:
 		// Recursively parse the type information for all the field members of the struct.
 		entry.Kind = reflect.Struct
 		parseStructFields(ctx, registry, entry, tt)
+		return nil
 
 	case *types.Named:
+		// This happens when you do 'type MyRequest SomeModel' when SomeModel is in a different file in the same
+		// package as the service. This works 'type MyRequest other.SomeModel'. But not if the aliased type is in the
+		// same package (but different file), the "SomeModel" type is parsed as an InvalidType. The current workaround
+		// is just to use embedded types. This does work:
+		//
+		// type MyRequest struct {
+		//     SomeModel
+		// }
+		//
+		// I should figure out what's going on and make this available because it's not a crazy use case, but I need
+		// to just get my program working and don't want to spend hours/days on this when I have a workaround.
+		if tt.Underlying() == InvalidType {
+			shortName := naming.NoPackage(tt.String())
+			return fail.Unexpected("Unable to parse alias '%s'. Request/response structs must be explicit structs, not type aliases.", shortName)
+		}
+
 		// The "Named" type doesn't actually have any meaningful information. For example, if the declaration
 		// is "type Foo []Bar", the Named type is "Foo", but we need to fill Foo's entry w/ information stored
 		// on the underlying type, "[]Bar".
-		registerTypeEntry(ctx, registry, entry, tt.Underlying())
+		if err := registerTypeEntry(ctx, registry, entry, tt.Underlying()); err != nil {
+			return err
+		}
 
 		// Check to see if any/all of our raw stream interfaces are implemented. This will serve as helper data for the
 		// client/gateway generators to know when a response should be treated as JSON (default) or raw bytes.
@@ -182,18 +213,18 @@ func registerTypeEntry(ctx *Context, registry TypeRegistry, entry *TypeDeclarati
 	case *types.Array:
 		entry.Basic = entry.Type == t
 		entry.Kind = reflect.Array
-		entry.Elem = registerType(ctx, registry, tt.Elem())
+		entry.Elem, err = registerType(ctx, registry, tt.Elem())
 
 	case *types.Slice:
 		entry.Basic = entry.Type == t
 		entry.Kind = reflect.Slice
-		entry.Elem = registerType(ctx, registry, tt.Elem())
+		entry.Elem, err = registerType(ctx, registry, tt.Elem())
 
 	case *types.Map:
 		entry.Basic = entry.Type == t
 		entry.Kind = reflect.Map
-		entry.Key = registerType(ctx, registry, tt.Key())
-		entry.Elem = registerType(ctx, registry, tt.Elem())
+		entry.Key, err = registerType(ctx, registry, tt.Key())
+		entry.Elem, err = registerType(ctx, registry, tt.Elem())
 
 	case *types.Basic:
 		// Our default registry should already have all of the basic types pre-populated, so just use that.
@@ -206,8 +237,9 @@ func registerTypeEntry(ctx *Context, registry TypeRegistry, entry *TypeDeclarati
 		// We don't allow channels or function types to be considered "valid" types on your request/response
 		// struct fields, so we're going to weed these out.
 		entry.Kind = reflect.Invalid
-		return
 	}
+
+	return err
 }
 
 func parseStructFields(ctx *Context, registry TypeRegistry, model *TypeDeclaration, structType *types.Struct) {
@@ -221,8 +253,8 @@ func parseStructFields(ctx *Context, registry TypeRegistry, model *TypeDeclarati
 }
 
 func parseStructField(ctx *Context, registry TypeRegistry, model *TypeDeclaration, structField *types.Var) *FieldDeclaration {
-	fieldType := registerType(ctx, registry, structField.Type())
-	if fieldType.Kind == reflect.Invalid {
+	fieldType, err := registerType(ctx, registry, structField.Type())
+	if fieldType.Kind == reflect.Invalid || err != nil {
 		return nil
 	}
 
