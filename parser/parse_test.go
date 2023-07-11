@@ -276,6 +276,11 @@ func (suite *ParserSuite) TestErrorPackageOnly() {
 	suite.Require().Error(err, "Should fail when file has nothing but the package identifier")
 }
 
+func (suite *ParserSuite) TestErrorSamePackageAlias() {
+	_, err := parser.ParseFile("testdata/errors/samepkgalias/service.go")
+	suite.Require().Error(err, "Should fail when types are aliases to other types in the same package (but diff file)")
+}
+
 func (suite *ParserSuite) TestErrorNoServices() {
 	_, err := parser.ParseFile("testdata/errors/noservices/service.go")
 	suite.Require().Error(err, "Should fail when file does not contain any service interfaces")
