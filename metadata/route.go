@@ -46,6 +46,9 @@ type EndpointRoute struct {
 	// that requests get to this endpoint. For API endpoints, it's the request path
 	// like "/user/{ID}" and for event endpoints, it's the subscription key like "FooService.Save".
 	Path string
+	// Status passes along the route's HTTP ### value from doc options when applicable. This is
+	// automatically set to 200 for event-based routes for a consistent "OK nothing went wrong" default.
+	Status int
 	// Roles are used for role-based security where you can say that this endpoint requires the user/caller
 	// to have either "admin.write" or "group.write" privileges. When defining your services, you can parameterize
 	// your roles such as "group.{ID}.write", but the ones stored in this slice should have already been

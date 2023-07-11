@@ -143,6 +143,7 @@ func (gw *Gateway) toStreamHandler(endpoint services.Endpoint, route services.En
 			Type:        gw.Type().String(),
 			Method:      route.Method,
 			Path:        route.Path,
+			Status:      route.Status,
 		})
 
 		if _, err := endpoint.Handler(ctx, serviceRequest); err != nil {
