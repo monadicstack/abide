@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"strings"
 
 	"github.com/monadicstack/abide/internal/naming"
 	"github.com/monadicstack/abide/internal/reflection"
@@ -55,15 +54,11 @@ func recoverMiddleware() MiddlewareFunc {
 func rolesMiddleware(endpoint Endpoint) MiddlewareFunc {
 	return func(ctx context.Context, req any, next HandlerFunc) (any, error) {
 		populateRole := func(role string) string {
-			segments := naming.TokenizePath(role, '.')
-			for i, segment := range segments {
-				if pathVar := naming.PathVariableName(segment); pathVar != "" {
-					var runtimeValue string
-					reflection.ToBindingValue(req, pathVar, &runtimeValue)
-					segments[i] = runtimeValue
-				}
-			}
-			return strings.Join(segments, ".")
+			return naming.ResolvePath(role, '.', func(variable string) string {
+				var runtimeValue string
+				reflection.ToBindingValue(req, variable, &runtimeValue)
+				return runtimeValue
+			})
 		}
 
 		route := metadata.Route(ctx)
