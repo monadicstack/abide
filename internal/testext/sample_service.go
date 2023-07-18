@@ -125,6 +125,9 @@ type SampleService interface {
 	//
 	// ROLES admin.write,user.{ID}.write ,   user.{User.ID}.admin, junk.{NotReal}.crap
 	SecureWithRoles(context.Context, *SampleSecurityRequest) (*SampleSecurityResponse, error)
+
+	// Panic um... panics. It never succeeds. It always behaves like me when I'm on a high place looking down.
+	Panic(context.Context, *SampleRequest) (*SampleResponse, error)
 }
 
 type SampleRequest struct {
