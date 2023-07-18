@@ -132,6 +132,13 @@ func set(value reflect.Value, out reflect.Value) bool {
 
 // ToBindingValue is used for fetching one-off values from struct instances given their binding string. For
 // example, you can take an instance of a User{} struct and the binding path "Group.ID" to fetch the user's group id.
+//
+// Example:
+//
+//	user := User{Name: "Bob", Group: Group{ID:"12345", Name:"Admins"}}
+//	name := ToBindingValue(user, "Name") // will be "Bob"
+//	groupID := ToBindingValue(user, "Group.ID") // will be "12345"
+//	groupName := ToBindingValue(user, "Group.Name") // will be "Admins"
 func ToBindingValue(value any, bindingPath string, out any) bool {
 	if bindingPath == "" {
 		return Assign(value, out)
@@ -141,16 +148,71 @@ func ToBindingValue(value any, bindingPath string, out any) bool {
 	reflectValue := reflect.ValueOf(value)
 	reflectType := reflectValue.Type()
 
+	// Flatten pointers to the raw value.
 	if reflectType.Kind() == reflect.Ptr {
 		reflectType = reflectType.Elem()
 		reflectValue = reflectValue.Elem()
 	}
 
-	field, ok := FindField(reflectType, nextAttribute)
+	bindingValue, ok := resolveBindingValue(reflectValue, reflectType, nextAttribute)
 	if !ok {
 		return false
 	}
-
-	bindingValue := reflectValue.FieldByIndex(field.Index).Interface()
 	return ToBindingValue(bindingValue, remainingPath, out)
+}
+
+func isStructType(t reflect.Type) bool {
+	return t.Kind() == reflect.Struct
+}
+
+func resolveBindingValue(structValue reflect.Value, structType reflect.Type, name string) (any, bool) {
+	if !isStructType(structType) {
+		return nil, false
+	}
+
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		bindingName := BindingName(field)
+
+		// There's a field on this struct whose name or JSON tag name matches the binding field name. Got it!
+		if strings.EqualFold(name, bindingName) {
+			return structValue.Field(i).Interface(), true
+		}
+
+		// The other possibility is that the field we're iterating over is an embedded field, so allow fields on
+		// the embedded type to act as though they are named fields on this struct. For example:
+		//
+		// type User struct {
+		//     Grouped
+		//     Enabled
+		//     ID string
+		//     Name string
+		// }
+		//
+		// type Grouped struct {
+		//     GroupIDs []string
+		// }
+		//
+		// type Enabled bool
+		//
+		// If we are doing resolveBindingValue(someUser, userType, "GroupIDs"), we want to recursively try to
+		// resolve the fields on the Grouped type since it's embedded in User (i.e. "GroupIDs" should behave like
+		// it's a native field on User).
+		if !field.Anonymous {
+			continue
+		}
+
+		// Only do recursive lookups on struct types. In the example above, we can't recursively iterate on
+		// the Enabled type because even though it's embedded, it's not a struct. The only way to match that
+		// field is to resolve the binding value on the "Enabled" field. It's possible to bind embedded non-structs
+		// like the Enabled field, but the only way to catch those cases is above when we compare the binding name
+		// to the field name.
+		if !isStructType(field.Type) {
+			continue
+		}
+		if embeddedValue, ok := resolveBindingValue(structValue.Field(i), field.Type, name); ok {
+			return embeddedValue, ok
+		}
+	}
+	return nil, false
 }

@@ -1,6 +1,7 @@
 package reflection_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/monadicstack/abide/internal/reflection"
@@ -30,10 +31,23 @@ func (suite *ReflectionSuite) TestToBindingValue() {
 		OrgPtr *organization
 	}
 
+	type EmbeddedStruct struct {
+		Foo string
+		Bar int
+	}
+
+	type EmbeddedString string
+	type EmbeddedStringAlias string
+	type EmbeddedInt int
+
 	type user struct {
 		ID    int
 		Name  string `json:"alias"`
 		Group group
+		EmbeddedStruct
+		EmbeddedString
+		EmbeddedStringAlias `json:"embedded_alias"`
+		EmbeddedInt
 	}
 
 	// empty := user{}
@@ -52,21 +66,26 @@ func (suite *ReflectionSuite) TestToBindingValue() {
 				Name: "His Dudeness",
 			},
 		},
+		EmbeddedStruct: EmbeddedStruct{
+			Foo: "Foo!",
+			Bar: 1000,
+		},
+		EmbeddedString:      "Blah",
+		EmbeddedStringAlias: "Farts",
+		EmbeddedInt:         9999,
 	}
 
-	testIntValue := func(u user, path string, expected int) {
-		var intValue int
-		r.True(reflection.ToBindingValue(u, path, &intValue))
-		r.Equal(expected, intValue)
-	}
-	testStringValue := func(u user, path string, expected string) {
-		var stringValue string
-		r.True(reflection.ToBindingValue(u, path, &stringValue))
-		r.Equal(expected, stringValue)
+	testValidBinding := func(u user, path string, expected any, outValue any) {
+		r.True(reflection.ToBindingValue(u, path, outValue))
+		// The outValue is likely a pointer (e.g. &myEmbeddedString), so dereference the pointer for the comparison.
+		r.EqualValues(expected, reflect.ValueOf(outValue).Elem().Interface())
 	}
 
 	var intValue int
 	var stringValue string
+	var embeddedIntValue EmbeddedInt
+	var embeddedStringValue EmbeddedString
+	var embeddedStringAliasValue EmbeddedStringAlias
 
 	// Garbage data tests
 	r.False(reflection.ToBindingValue(dude, "Turds", &intValue))
@@ -78,15 +97,27 @@ func (suite *ReflectionSuite) TestToBindingValue() {
 	})
 
 	// Can properly fetch primitive fields at the root level
-	testIntValue(dude, "ID", 123)
-	testStringValue(dude, "alias", "Dude")
+	testValidBinding(dude, "ID", 123, &intValue)
+	testValidBinding(dude, "alias", "Dude", &stringValue)
 
 	// Can go recursively deep for values
-	testIntValue(dude, "Group.ID", 456)
-	testStringValue(dude, "Group.Name", "Bowling League")
-	testIntValue(dude, "Group.Organization.ID", 789)
-	testIntValue(dude, "Group.OrgPtr.ID", 42)
-	testStringValue(dude, "Group.OrgPtr.Name", "His Dudeness")
+	testValidBinding(dude, "Group.ID", 456, &intValue)
+	testValidBinding(dude, "Group.Name", "Bowling League", &stringValue)
+	testValidBinding(dude, "Group.Organization.ID", 789, &intValue)
+	testValidBinding(dude, "Group.OrgPtr.ID", 42, &intValue)
+	testValidBinding(dude, "Group.OrgPtr.Name", "His Dudeness", &stringValue)
+
+	// Properly deals with embedded types. You can reference it using the shorthand (pretend the embedding isn't
+	// there), or explicitly name the embedded type.
+	testValidBinding(dude, "Foo", "Foo!", &stringValue)
+	testValidBinding(dude, "EmbeddedStruct.Foo", "Foo!", &stringValue)
+	testValidBinding(dude, "Bar", 1000, &intValue)
+
+	// You should be able to embed non-struct types and have them resolve if you treat it like a non-embedded field.
+	// Also, embedded fields should work even if you give them JSON aliases as well!
+	testValidBinding(dude, "EmbeddedString", EmbeddedString("Blah"), &embeddedStringValue)
+	testValidBinding(dude, "embedded_alias", EmbeddedStringAlias("Farts"), &embeddedStringAliasValue)
+	testValidBinding(dude, "EmbeddedInt", EmbeddedInt(9999), &embeddedIntValue)
 
 	// Can grab complex data structures as binding values.
 	var groupValue group

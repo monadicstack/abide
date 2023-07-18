@@ -44,6 +44,9 @@ func (suite *ServerSuite) start() (*services.Server, *testext.Sequence, func()) 
 		services.Listen(events.NewGateway()),
 		services.Register(gen.SampleServiceServer(sampleService)),
 		services.Register(gen.OtherServiceServer(otherService)),
+		services.OnPanic(func(err error, stack []byte) {
+			sequence.Append("OnPanic:" + err.Error())
+		}),
 	)
 	go func() { _ = server.Run() }()
 
@@ -260,4 +263,22 @@ func (suite *ServerSuite) TestEventChain() {
 		"ChainThree:ChainTwo:ChainOne:Abide",
 		"ChainFour:ChainTwo:ChainOne:Abide",
 	})
+}
+
+func (suite *ServerSuite) TestPanic() {
+	server, calls, shutdown := suite.start()
+	defer shutdown()
+
+	calls.Reset()
+	_, err := server.Invoke(context.Background(), "SampleService", "Panic", &testext.SampleRequest{Text: "Abide"})
+
+	// First, make sure that the message in the panic is ultimately returned as the error message from the call.
+	// The handler just calls panic("don't"), so "don't" should be the returned error message.
+	suite.Require().Error(err)
+	suite.Require().Equal("don't", err.Error())
+
+	// We also want to make sure that our OnPanic() callback was properly invoked. This ensures that our panic
+	// logging hook is properly working. This is not added to the calls sequence in the service, but rather in
+	// suite.start() when setting up the service.
+	suite.assertInvoked(calls, []string{"OnPanic:don't"})
 }

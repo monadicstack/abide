@@ -2,7 +2,10 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"runtime/debug"
 
+	"github.com/monadicstack/abide/fail"
 	"github.com/monadicstack/abide/internal/naming"
 	"github.com/monadicstack/abide/internal/reflection"
 	"github.com/monadicstack/abide/internal/slices"
@@ -37,11 +40,26 @@ func (funcs MiddlewareFuncs) Append(mw ...MiddlewareFunc) MiddlewareFuncs {
 
 // recoverMiddleware gets added as our outermost middleware to ensure that any accidental panic()
 // calls at any level are gracefully caught without killing our server/process.
-func recoverMiddleware() MiddlewareFunc {
+func recoverMiddleware(handler OnPanicFunc) MiddlewareFunc {
+	toError := func(recovery any) error {
+		switch val := recovery.(type) {
+		case error:
+			return val
+		case string:
+			return fail.Unexpected(val)
+		case fmt.Stringer:
+			return fail.Unexpected(val.String())
+		default:
+			return fail.Unexpected("%s", val)
+		}
+	}
+
 	return func(ctx context.Context, req any, next HandlerFunc) (response any, err error) {
 		defer func() {
 			if recovery := recover(); recovery != nil {
-				err, _ = recovery.(error)
+				// This changes the 'err' return value so the request fails as expected.
+				err = toError(recovery)
+				handler(err, debug.Stack())
 			}
 		}()
 		return next(ctx, req)

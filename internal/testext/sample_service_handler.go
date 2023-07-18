@@ -165,3 +165,7 @@ func (s SampleServiceHandler) SecureWithRoles(ctx context.Context, req *SampleSe
 	s.Sequence.Append("SecureWithRoles:" + req.ID)
 	return &SampleSecurityResponse{Roles: metadata.Route(ctx).Roles}, nil
 }
+
+func (s SampleServiceHandler) Panic(_ context.Context, req *SampleRequest) (*SampleResponse, error) {
+	panic("don't")
+}

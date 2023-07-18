@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -124,6 +125,9 @@ func NewServer(options ...ServerOption) *Server {
 		shutdownComplete:  &sync.WaitGroup{},
 		gatewayMiddleware: MiddlewareFuncs{},
 		endpoints:         map[string]Endpoint{},
+		onPanic: func(err error, stack []byte) {
+			fmt.Printf("Panic: %v\n%v\n", err, string(stack))
+		},
 	}
 	for _, option := range options {
 		option(&instance)
@@ -163,6 +167,9 @@ type Server struct {
 	// gatewayMiddleware aggregates all endpoint middleware functions that we want to occur on ALL
 	// endpoints regardless of the gateway that's handling it.
 	gatewayMiddleware MiddlewareFuncs
+	// onPanic is a customizable callback that lets you perform custom logging/logic whenever the server
+	// recovers from a panic that occurred during your function calls.
+	onPanic OnPanicFunc
 }
 
 func (server *Server) registerEndpoint(endpoint Endpoint) {
@@ -171,7 +178,7 @@ func (server *Server) registerEndpoint(endpoint Endpoint) {
 	// handlers have everything that the framework offers at their disposal. Additionally,
 	// the recovery middleware should always be the outermost handler to clean up
 	// after any crap that happens anywhere else in the pipeline.
-	endpoint.Handler = MiddlewareFuncs{recoverMiddleware(), rolesMiddleware(endpoint)}.
+	endpoint.Handler = MiddlewareFuncs{recoverMiddleware(server.onPanic), rolesMiddleware(endpoint)}.
 		Append(server.gatewayMiddleware...).
 		Then(endpoint.Handler)
 
@@ -304,5 +311,16 @@ func Listen(gw Gateway) ServerOption {
 func Register(services ...*Service) ServerOption {
 	return func(server *Server) {
 		server.services = append(server.services, services...)
+	}
+}
+
+// OnPanicFunc is the signature for custom callbacks to invoke when a panic occurs in your service code.
+type OnPanicFunc func(err error, stack []byte)
+
+// OnPanic provides a custom callback that will let you log/observe the error/stack from any panic that occurred
+// in your service method code.
+func OnPanic(handler OnPanicFunc) ServerOption {
+	return func(server *Server) {
+		server.onPanic = handler
 	}
 }
