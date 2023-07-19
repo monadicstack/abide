@@ -175,6 +175,7 @@ func (suite *DartClientSuite) TestDownload() {
 	res := RawClientOutput{}
 	suite.ExpectPass(output[0], &res, func() {
 		suite.Equal("text/plain", res.ContentType)
+		suite.Equal("dude.txt", res.ContentFileName)
 		suite.Equal(34, res.ContentLength)
 		suite.Equal("Donny, you're out of your element!", res.Content)
 	})
@@ -190,6 +191,7 @@ func (suite *DartClientSuite) TestDownloadResumable() {
 	res := RawClientOutput{}
 	suite.ExpectPass(output[0], &res, func() {
 		suite.Equal("text/html", res.ContentType)
+		suite.Equal("dude.html", res.ContentFileName)
 		suite.Equal(24, res.ContentLength)
 		suite.Equal("<h1>The Dude Abides</h1>", res.Content)
 		suite.Equal("bytes", res.ContentRange.Unit)

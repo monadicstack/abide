@@ -236,6 +236,7 @@ func (suite *GoClientSuite) TestDownload() {
 	suite.Require().NoError(err)
 	suite.Equal(34, res.ContentLength())
 	suite.Equal("text/plain", res.ContentType())
+	suite.Equal("dude.txt", res.ContentFileName())
 
 	content, _ := io.ReadAll(res.Content())
 	suite.Equal("Donny, you're out of your element!", string(content))
@@ -251,6 +252,7 @@ func (suite *GoClientSuite) TestDownloadResumable() {
 	suite.Require().NoError(err)
 	suite.Equal(24, res.ContentLength())
 	suite.Equal("text/html", res.ContentType())
+	suite.Equal("dude.html", res.ContentFileName())
 
 	start, end, size := res.ContentRange()
 	suite.Equal(50, start)

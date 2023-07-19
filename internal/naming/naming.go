@@ -157,6 +157,30 @@ func DispositionFileName(contentDisposition string) string {
 	return fileName
 }
 
+// CleanFileName accepts a proposed file name like "Foo @ Bar.pdf", and normalizes it to a safe, valid file
+// name like "Foo__Bar.pdf". The rules for normalization are:
+//
+// - Alphanumeric characters are okay
+// - Underscores are okay
+// - Periods are okay
+// - Hyphens are okay
+// - Whitespace is converted to underscores
+func CleanFileName(fileName string) string {
+	builder := strings.Builder{}
+	for _, r := range fileName {
+		switch {
+		case unicode.IsLetter(r), unicode.IsNumber(r), r == '_', r == '.', r == '-':
+			builder.WriteRune(r)
+		case unicode.IsSpace(r):
+			builder.WriteRune('_')
+		default:
+			// Don't write potentially problematic characters. There should be plenty
+			// of alphanumeric ones to make the file name seem reasonable enough.
+		}
+	}
+	return builder.String()
+}
+
 // IsPathVariable returns true if the given path segment value looks like it's a variable.
 //
 //	IsPathVariable("user") -> false

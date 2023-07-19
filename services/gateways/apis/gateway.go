@@ -13,6 +13,7 @@ import (
 	"github.com/dimfeld/httptreemux/v5"
 	"github.com/monadicstack/abide/codec"
 	"github.com/monadicstack/abide/fail"
+	"github.com/monadicstack/abide/internal/naming"
 	"github.com/monadicstack/abide/internal/quiet"
 	"github.com/monadicstack/abide/services"
 )
@@ -343,7 +344,8 @@ func respondSuccessStream(w http.ResponseWriter, streamResponse services.Content
 
 	writeContentType(headers, streamResponse)
 	writeContentLength(headers, streamResponse)
-	writeContentRange(headers, streamResponse) // this can change Content-Length, so do this last!
+	writeContentRange(headers, streamResponse) // this can change Content-Length, so do this after writeContentLength()!
+	writeContentFileName(headers, streamResponse)
 
 	w.WriteHeader(status)
 	_, _ = io.Copy(w, content)
@@ -407,6 +409,20 @@ func writeContentRange(headers http.Header, streamResponse services.ContentGette
 	}
 	headers.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%s", start, end, sizeValue))
 	headers.Set("Content-Length", strconv.FormatInt(int64(end-start), 10))
+}
+
+func writeContentFileName(headers http.Header, streamResponse services.ContentGetter) {
+	getter, ok := streamResponse.(services.ContentFileNameGetter)
+	if !ok {
+		return
+	}
+
+	contentFileName := naming.CleanFileName(strings.TrimSpace(getter.ContentFileName()))
+	if contentFileName == "" {
+		return
+	}
+
+	headers.Set("Content-Disposition", `attachment; filename="`+contentFileName+`"`)
 }
 
 func pathParams(req *http.Request) map[string][]string {
