@@ -129,6 +129,7 @@ func (suite *ServerSuite) TestStreamedResponse() {
 	stream := suite.responseStream(res)
 	suite.Equal("Donny, you're out of your element!", suite.streamContent(stream))
 	suite.Equal("text/plain", stream.ContentType())
+	suite.Equal("dude.txt", stream.ContentFileName())
 	suite.Equal(34, stream.ContentLength())
 }
 
@@ -143,6 +144,7 @@ func (suite *ServerSuite) TestResumableStreamedResponse() {
 	stream := suite.responseStream(res)
 	suite.Equal("<h1>The Dude Abides</h1>", suite.streamContent(stream))
 	suite.Equal("text/html", stream.ContentType())
+	suite.Equal("dude.html", stream.ContentFileName())
 
 	start, end, size := stream.ContentRange()
 	suite.Equal(50, start)

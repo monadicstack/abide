@@ -205,10 +205,12 @@ func registerTypeEntry(ctx *Context, registry TypeRegistry, entry *TypeDeclarati
 		entry.Implements.ContentTypeGetter = implements.Method(tt, "ContentType", nil, []string{"string"})
 		entry.Implements.ContentLengthGetter = implements.Method(tt, "ContentLength", nil, []string{"int"})
 		entry.Implements.ContentRangeGetter = implements.Method(tt, "ContentRange", nil, []string{"int", "int", "int"})
+		entry.Implements.ContentFileNameGetter = implements.Method(tt, "ContentFileName", nil, []string{"string"})
 		entry.Implements.ContentSetter = implements.Method(tt, "SetContent", []string{"io.ReadCloser"}, nil)
 		entry.Implements.ContentTypeSetter = implements.Method(tt, "SetContentType", []string{"string"}, nil)
 		entry.Implements.ContentLengthSetter = implements.Method(tt, "SetContentLength", []string{"int"}, nil)
 		entry.Implements.ContentRangeSetter = implements.Method(tt, "SetContentRange", []string{"int", "int", "int"}, nil)
+		entry.Implements.ContentFileNameSetter = implements.Method(tt, "SetContentFileName", []string{"string"}, nil)
 
 	case *types.Array:
 		entry.Basic = entry.Type == t

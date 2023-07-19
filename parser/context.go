@@ -614,6 +614,10 @@ type TypeDeclaration struct {
 		ContentRangeGetter bool
 		// ContentRangeSetter is true when it implements that interface.
 		ContentRangeSetter bool
+		// ContentFileNameGetter is true when it implements that interface.
+		ContentFileNameGetter bool
+		// ContentFileNameSetter is true when it implements that interface.
+		ContentFileNameSetter bool
 	}
 }
 

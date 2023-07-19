@@ -190,6 +190,12 @@ func (c Client) decodeResponseStream(res *http.Response, streamResponse services
 
 		setter.SetContentRange(int(start), int(end), int(size))
 	}
+
+	if setter, ok := streamResponse.(services.ContentFileNameSetter); ok {
+		fileName := naming.DispositionFileName(res.Header.Get("Content-Disposition"))
+		setter.SetContentFileName(fileName)
+	}
+
 	return nil
 }
 

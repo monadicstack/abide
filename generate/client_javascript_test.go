@@ -185,6 +185,7 @@ func (suite *JavaScriptClientSuite) TestDownload() {
 	res := RawClientOutput{}
 	suite.ExpectPass(output[0], &res, func() {
 		suite.Equal("text/plain", res.ContentType)
+		suite.Equal("dude.txt", res.ContentFileName)
 		suite.Equal(34, res.ContentLength)
 		suite.Equal("Donny, you're out of your element!", res.Content)
 	})
@@ -206,6 +207,7 @@ func (suite *JavaScriptClientSuite) TestDownloadResumable() {
 		suite.Equal(50, res.ContentRange.Start)
 		suite.Equal(74, res.ContentRange.End)
 		suite.Equal(1024, res.ContentRange.Size)
+		suite.Equal("dude.html", res.ContentFileName)
 	})
 }
 

@@ -61,6 +61,20 @@ type ContentRangeSetter interface {
 	SetContentRange(start int, end int, size int)
 }
 
+// ContentFileNameGetter is used to supply an optional Content-Disposition header, allowing you to customize
+// the name of the file presented in download modals of browsers/clients.
+type ContentFileNameGetter interface {
+	// ContentFileName returns the name of the file that should be used when downloading this stream.
+	ContentFileName() string
+}
+
+// ContentFileNameSetter is used to supply an optional Content-Disposition header, allowing you to customize
+// the name of the file presented in download modals of browsers/clients.
+type ContentFileNameSetter interface {
+	// SetContentFileName applies the name of the file that should be used when downloading this stream.
+	SetContentFileName(string)
+}
+
 // StreamRequest implements all of the ContentXxx and SetContentXxx methods that we support and look
 // at when we look at streaming/upload style requests.
 //
@@ -99,6 +113,7 @@ type StreamResponse struct {
 	contentRangeStart int
 	contentRangeEnd   int
 	contentRangeSize  int
+	contentFileName   string
 }
 
 // Content returns the raw byte stream representing the data returned by the endpoint.
@@ -141,6 +156,16 @@ func (res *StreamResponse) ContentLength() int {
 // SetContentLength sets the number of bytes the caller should read from the content stream.
 func (res *StreamResponse) SetContentLength(contentLength int) {
 	res.contentLength = contentLength
+}
+
+// ContentFileName returns the name of the file the client should use to download the stream.
+func (res *StreamResponse) ContentFileName() string {
+	return res.contentFileName
+}
+
+// SetContentFileName sets the name of the file the client should use to download the stream.
+func (res *StreamResponse) SetContentFileName(contentFileName string) {
+	res.contentFileName = contentFileName
 }
 
 // Redirector provides a way to tell gateways that the response value doesn't contain the

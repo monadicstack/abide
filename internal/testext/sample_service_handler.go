@@ -101,11 +101,13 @@ func (s SampleServiceHandler) Download(_ context.Context, req *SampleDownloadReq
 		res.SetContent(io.NopCloser(bytes.NewBufferString(content)))
 		res.SetContentType("text/csv")
 		res.SetContentLength(len([]byte(content)))
+		res.SetContentFileName("dude.csv")
 	default:
 		content := "Donny, you're out of your element!"
 		res.SetContent(io.NopCloser(bytes.NewBufferString(content)))
 		res.SetContentType("text/plain")
 		res.SetContentLength(len([]byte(content)))
+		res.SetContentFileName("dude.txt")
 	}
 	return &res, nil
 }
@@ -117,6 +119,7 @@ func (s SampleServiceHandler) DownloadResumable(_ context.Context, req *SampleDo
 	res.SetContentType("text/html")
 	res.SetContentRange(50, 50+len(content), 1024)
 	res.SetContent(io.NopCloser(bytes.NewBufferString(content)))
+	res.SetContentFileName("dude.html")
 	return &res, nil
 }
 
